@@ -109,4 +109,5 @@ function detailForm(id,rid,m,tasks){
 function saveMaint(id,rid){let m=machine(rid),ts=Date.parse(maintDate.value)||Date.now(),tasks=[...document.querySelectorAll("#checks input:checked")].map(x=>x.value);if(!tasks.length)return alert("Seleccioná al menos una tarea.");let next=new Date(ts);next.setMonth(next.getMonth()+2);maintenance.push({rid,id:m.id,cliente:m.cliente,tipo:m.tipo,provincia:m.provincia,localidad:m.localidad,ubicacion:m.ubicacion,tareas:tasks.join(" + "),observaciones:mnote.value.trim(),ts,fecha:fmt(ts),proximo:next.toISOString()});save();alert("Mantenimiento guardado. Próximo: "+next.toLocaleDateString("es-AR"));show(id)}
 function backup(){let b=new Blob([JSON.stringify({version:4,exportado:new Date().toISOString(),machines,observations,maintenance,movements},null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="respaldo_inventario.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 home();
+if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js', {scope:'./'}).catch(()=>{})); }
 </script></body></html>
