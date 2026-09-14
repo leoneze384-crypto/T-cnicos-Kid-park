@@ -49,7 +49,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 </div><div class="card"><div class="title">📊 Resumen</div><div id="summary"></div></div>
 <div class="card"><b>🔒 Seguridad</b><div class="muted">Cada registro pertenece a tu cuenta. Las correcciones de ID y las bajas requieren volver a verificar tu contraseña.</div></div>
 </section>
-<section id="emptyCloud" class="hidden"><div class="card"><div class="title">☁️ Tu base está lista</div><p>No hay máquinas cargadas todavía.</p><button class="btn primary" style="width:100%" onclick="importSeed()">📥 Importar las 123 máquinas actuales</button><p class="muted">Usá esto solamente en tu primera cuenta para migrar el inventario actual. Los técnicos nuevos no deben importarlo.</p></div></section>
+<section id="emptyCloud" class="hidden"><div class="card"><div class="title">☁️ Tu base está lista</div><p>No hay máquinas cargadas todavía.</p><div id="importBox"></div></div></section>
 <section id="search" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔎 Buscar</div><input id="q" placeholder="ID, cliente, localidad, tarea, observación..." oninput="renderSearch()"><div id="results"></div></section>
 <section id="add" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">➕ Agregar máquina</div><form onsubmit="addMachine(event)"><label>ID de fábrica</label><input id="a_id" required><label>N.º de cliente</label><input id="a_cliente"><label>Tipo / modelo</label><input id="a_tipo" required><label>Provincia</label><input id="a_provincia"><label>Localidad</label><input id="a_localidad"><label>Ubicación</label><input id="a_ubicacion"><label>Responsable</label><input id="a_responsable"><label>Estado</label><select id="a_estado"><option>Activa</option><option>En mantenimiento</option><option>Fuera de servicio</option><option>Baja</option></select><button class="btn primary" style="width:100%">Guardar</button></form></section>
 <section id="obs" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📝 Nueva observación</div><select id="o_machine"></select><textarea id="o_text" placeholder="Observación..."></textarea><button class="btn primary" style="width:100%" onclick="saveObs()">Guardar en historial</button></section>
@@ -83,7 +83,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let currentUser=null, machines=[], observations=[], maintenance=[], movements=[], catalog=[];
+let currentUser=null, machines=[], observations=[], maintenance=[], movements=[], catalog=[], canImportInitial=false;
 let authMode="login";
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
@@ -111,7 +111,7 @@ window.authSubmit=async(e)=>{
       if(!name)throw new Error("Escribí tu nombre.");
       const cred=await createUserWithEmailAndPassword(auth,email,pass);
       await updateProfile(cred.user,{displayName:name});
-      await setDoc(doc(db,"users",cred.user.uid),{ownerUid:cred.user.uid,nombre:name,email,creadoEn:serverTimestamp()});
+      await setDoc(doc(db,"users",cred.user.uid),{ownerUid:cred.user.uid,nombre:name,email,puedeImportarInicial:false,creadoEn:serverTimestamp()});
     }else{
       await signInWithEmailAndPassword(auth,email,pass);
     }
@@ -126,14 +126,34 @@ async function loadCollection(name){
   const q=query(collection(db,name),where("ownerUid","==",currentUser.uid));
   const snap=await getDocs(q); return snap.docs.map(d=>({docId:d.id,...d.data()}));
 }
+async function loadImportPermission(){
+  canImportInitial=false;
+  try{
+    const snap=await getDocs(query(collection(db,"users"),where("ownerUid","==",currentUser.uid)));
+    if(!snap.empty){
+      const u=snap.docs[0].data();
+      canImportInitial=u.puedeImportarInicial===true;
+    }
+  }catch(err){console.error("No pude leer permisos de importación",err)}
+}
+function renderEmptyCloud(){
+  const box=$("importBox");
+  if(!box)return;
+  if(canImportInitial){
+    box.innerHTML='<button class="btn primary" style="width:100%" onclick="importSeed()">📥 Importar las 123 máquinas actuales</button><p class="muted">Esta cuenta está autorizada para migrar el inventario inicial. Los técnicos nuevos no tienen este permiso.</p>';
+  }else{
+    box.innerHTML='<div class="card" style="margin-top:12px"><b>Base vacía</b><p class="muted">Esta cuenta es nueva. Podés comenzar agregando tus propias máquinas. La migración del inventario inicial está reservada a la cuenta autorizada.</p></div>';
+  }
+}
 async function loadCloud(){
   setBusy("Cargando tu base…");
   try{
+    await loadImportPermission();
     [machines,observations,maintenance,movements,catalog]=await Promise.all([
       loadCollection("machines"),loadCollection("observations"),loadCollection("maintenance"),loadCollection("movements"),loadCollection("catalog")
     ]);
     machines=machines.map(m=>({rid:m.rid||m.docId,...m}));
-    if(!machines.length){show("emptyCloud");return}
+    if(!machines.length){show("emptyCloud");renderEmptyCloud();return}
     show("home"); home();
   }catch(err){console.error(err);toast("No pude cargar tu base: "+(err.message||err))}finally{setBusy("")}
 }
@@ -141,18 +161,19 @@ async function saveDoc(name,id,data){await setDoc(doc(db,name,id),{...data,owner
 async function addDocCloud(name,data){const ref=await addDoc(collection(db,name),{...data,ownerUid:currentUser.uid});return ref.id}
 
 window.importSeed=async()=>{
+  if(!canImportInitial)return toast("Esta cuenta no está autorizada para importar el inventario inicial.");
   if(machines.length)return toast("Tu base ya tiene máquinas. No se puede importar encima.");
   if(!confirm("Se van a importar las 123 máquinas del inventario actual a TU cuenta. ¿Continuar?"))return;
   setBusy("Importando 123 máquinas…");
   try{
     let batch=writeBatch(db), n=0;
     for(const raw of SEED){
-      const m={...raw,ownerUid:currentUser.uid,importadoEl:new Date().toISOString()};
+      const m={...raw,ownerUid:currentUser.uid,migracionInicial:true,importadoEl:new Date().toISOString()};
       batch.set(doc(db,"machines",raw.rid),m); n++;
       if(n%450===0){await batch.commit();batch=writeBatch(db)}
     }
     await batch.commit();
-    const obs=SEED.filter(m=>m.observacionInicial).map(m=>({rid:m.rid,id:m.id,texto:m.observacionInicial,ts:Date.now(),fecha:fmt(Date.now()),tipo:"Migración inicial"}));
+    const obs=SEED.filter(m=>m.observacionInicial).map(m=>({rid:m.rid,id:m.id,texto:m.observacionInicial,ts:Date.now(),fecha:fmt(Date.now()),tipo:"Migración inicial",migracionInicial:true}));
     batch=writeBatch(db); n=0;
     for(const o of obs){const ref=doc(collection(db,"observations"));batch.set(ref,{...o,ownerUid:currentUser.uid});n++;if(n%450===0){await batch.commit();batch=writeBatch(db)}}
     await batch.commit();
