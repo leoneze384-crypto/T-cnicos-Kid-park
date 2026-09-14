@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "io.github.leoneze384_crypto.twa",
+      "sha256_cert_fingerprints": [
+        "3B:57:16:E5:7E:9B:3B:89:6E:67:DF:D4:9D:F5:97:E6:BB:4E:2F:73:8D:47:A3:D3:E7:8B:36:0E:2D:C2:52:1B"
+      ]
+    }
+  }
+]
