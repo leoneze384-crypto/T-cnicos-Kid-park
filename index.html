@@ -150,9 +150,7 @@ window.authSubmit=async(e)=>{
 window.logout=async()=>{if(confirm("¿Cerrar sesión?"))await signOut(auth)};
 window.deleteMyAccount=async()=>{
   if(!currentUser)return;
-  const ok=confirm("ATENCIÓN: vas a eliminar el acceso de esta cuenta. Si todavía trabajás con estas máquinas, cancelá y hacé primero una Transferencia de respaldo.
-
-Los registros de la empresa NO se borrarán: quedarán conservados para mantener la trazabilidad. ¿Querés continuar?");
+  const ok=confirm("ATENCIÓN: vas a eliminar el acceso de esta cuenta. Si todavía trabajás con estas máquinas, cancelá y hacé primero una Transferencia de respaldo.\n\nLos registros de la empresa NO se borrarán: quedarán conservados para mantener la trazabilidad. ¿Querés continuar?");
   if(!ok)return;
   if(!(await reauth()))return;
   const confirm2=prompt("Para confirmar, escribí ELIMINAR CUENTA");
