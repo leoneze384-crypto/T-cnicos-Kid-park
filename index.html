@@ -28,7 +28,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
       <button id="authAction" class="btn primary" style="width:100%">Entrar</button>
     </form>
     <button id="authSwitch" class="btn" style="width:100%;margin-top:8px" onclick="toggleAuth()">¿Es tu primera vez? Crear cuenta</button>
-    <button id="forgotBtn" class="btn" style="width:100%;margin-top:8px" onclick="forgotPassword()">🔑 ¿Olvidaste tu contraseña?</button>
+    <button type="button" id="forgotBtn" class="btn" style="width:100%;margin-top:8px">🔑 ¿Olvidaste tu contraseña?</button>
     <div id="authMsg" class="error"></div><div id="busy" class="busy hidden"></div>
   </div>
 </section>
@@ -108,17 +108,26 @@ function renderAuth(){
   $("nameWrap").classList.toggle("hidden",authMode!=="register");
   $("authSwitch").textContent=authMode==="login"?"¿Es tu primera vez? Crear cuenta":"Ya tengo cuenta · Iniciar sesión";
   $("forgotBtn").classList.toggle("hidden",authMode!=="login");
-  $("authMsg").textContent="";
+  $("authMsg").textContent="";$("authMsg").style.color="#b91c1c";
 }
 window.toggleAuth=()=>{authMode=authMode==="login"?"register":"login";renderAuth()};
-window.forgotPassword=async()=>{
+async function forgotPassword(){
   const email=$("authEmail").value.trim();
+  $("authMsg").textContent="";
   if(!email){$("authMsg").textContent="Escribí primero tu correo electrónico.";$("authEmail").focus();return}
   setBusy("Enviando correo de recuperación…");
-  try{await sendPasswordResetEmail(auth,email);$("authMsg").textContent="Te enviamos un correo para restablecer la contraseña. Revisá también Spam o Correo no deseado.";}
-  catch(err){const map={"auth/invalid-email":"El correo no es válido.","auth/user-not-found":"No encontramos una cuenta con ese correo.","auth/too-many-requests":"Demasiados intentos. Esperá un momento."};$("authMsg").textContent=map[err.code]||"No se pudo enviar el correo de recuperación.";}
-  finally{setBusy("")}
-};
+  try{
+    await sendPasswordResetEmail(auth,email);
+    $("authMsg").style.color="#166534";
+    $("authMsg").textContent="✅ Correo enviado. Revisá tu bandeja de entrada y también Spam o Correo no deseado.";
+  }catch(err){
+    const map={"auth/invalid-email":"El correo no es válido.","auth/user-not-found":"No encontramos una cuenta con ese correo.","auth/too-many-requests":"Demasiados intentos. Esperá un momento.","auth/network-request-failed":"No hay conexión. Revisá Internet e intentá nuevamente."};
+    $("authMsg").style.color="#b91c1c";
+    $("authMsg").textContent=map[err.code]||("No se pudo enviar el correo de recuperación. Código: "+(err.code||"desconocido"));
+  }finally{setBusy("")}
+}
+window.forgotPassword=forgotPassword;
+$("forgotBtn").addEventListener("click",forgotPassword);
 window.authSubmit=async(e)=>{
   e.preventDefault();
   const email=$("authEmail").value.trim(), pass=$("authPassword").value, name=$("authName").value.trim();
