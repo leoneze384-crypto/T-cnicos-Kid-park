@@ -28,6 +28,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
       <button id="authAction" class="btn primary" style="width:100%">Entrar</button>
     </form>
     <button id="authSwitch" class="btn" style="width:100%;margin-top:8px" onclick="toggleAuth()">¿Es tu primera vez? Crear cuenta</button>
+    <button id="forgotBtn" class="btn" style="width:100%;margin-top:8px" onclick="forgotPassword()">🔑 ¿Olvidaste tu contraseña?</button>
     <div id="authMsg" class="error"></div><div id="busy" class="busy hidden"></div>
   </div>
 </section>
@@ -46,6 +47,8 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <button class="card btn" onclick="show('bajas')">🗑️<br>Dadas de baja</button>
 <button class="card btn" onclick="show('catalog')">📚<br>Catálogo</button>
 <button class="card btn" onclick="backup()">💾<br>Respaldo</button>
+<button class="card btn blue" onclick="show('transfer')">🔄<br>Transferencia de respaldo</button>
+<button class="card btn" style="background:#fee2e2;color:#991b1b" onclick="show('account')">⚠️<br>Cuenta</button>
 </div><div class="card"><div class="title">📊 Resumen</div><div id="summary"></div></div>
 <div class="card"><b>🔒 Seguridad</b><div class="muted">Cada registro pertenece a tu cuenta. Las correcciones de ID y las bajas requieren volver a verificar tu contraseña.</div></div>
 </section>
@@ -59,6 +62,8 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <section id="keys" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔑 Mantenimiento Llaveros</div><div id="keyList"></div></section>
 <section id="bajas" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🗑️ Máquinas dadas de baja</div><div class="muted">No se eliminan: quedan conservadas con todo su historial.</div><div id="bajasList"></div></section>
 <section id="catalog" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📚 Catálogo ampliable</div><div class="muted">El catálogo es independiente del inventario real.</div><div id="catalogList"></div></section>
+<section id="transfer" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Transferencia de respaldo</div><div class="muted">Pasá máquinas seleccionadas a otro técnico mediante un archivo. Se conservan los datos y el historial; la otra cuenta recibe copias propias y separadas.</div><div class="card"><b>📤 Enviar respaldo</b><label>Filtrar por localidad, provincia, ID o tipo</label><input id="tr_filter" placeholder="Ej.: Resistencia, Chaco, PCH..." oninput="renderTransferList()"><div style="margin:8px 0"><button class="btn" onclick="selectAllTransfer(true)">Seleccionar todas</button> <button class="btn" onclick="selectAllTransfer(false)">Limpiar selección</button></div><div id="transferList"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="exportTransfer()">📤 Generar transferencia</button></div><div class="card"><b>📥 Recibir respaldo</b><div class="muted">Elegí el archivo que te envió otro técnico. Antes de guardar, la app te mostrará cuántas máquinas e historiales contiene.</div><input id="transferFile" type="file" accept="application/json,.json" onchange="previewTransfer(event)"><div id="transferPreview" style="margin-top:8px"></div></div></section>
+<section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta. <b>Antes de hacerlo, transferí las máquinas que correspondan.</b></p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros de inventario e historiales quedan conservados en la base central para mantener la trazabilidad de la empresa y no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
 <section id="detail" class="hidden"></section>
 </main>
 <nav class="bottom"><button onclick="show('home')">🏠<br>Inicio</button><button onclick="show('search')">🔎<br>Buscar</button><button onclick="show('obs')">📝<br>Obs.</button><button onclick="show('moves')">🔄<br>Mov.</button></nav>
@@ -66,7 +71,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 import { getFirestore, collection, query, where, getDocs, doc, setDoc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -102,9 +107,18 @@ function renderAuth(){
   $("authAction").textContent=authMode==="login"?"Entrar":"Crear cuenta";
   $("nameWrap").classList.toggle("hidden",authMode!=="register");
   $("authSwitch").textContent=authMode==="login"?"¿Es tu primera vez? Crear cuenta":"Ya tengo cuenta · Iniciar sesión";
+  $("forgotBtn").classList.toggle("hidden",authMode!=="login");
   $("authMsg").textContent="";
 }
 window.toggleAuth=()=>{authMode=authMode==="login"?"register":"login";renderAuth()};
+window.forgotPassword=async()=>{
+  const email=$("authEmail").value.trim();
+  if(!email){$("authMsg").textContent="Escribí primero tu correo electrónico.";$("authEmail").focus();return}
+  setBusy("Enviando correo de recuperación…");
+  try{await sendPasswordResetEmail(auth,email);$("authMsg").textContent="Te enviamos un correo para restablecer la contraseña. Revisá también Spam o Correo no deseado.";}
+  catch(err){const map={"auth/invalid-email":"El correo no es válido.","auth/user-not-found":"No encontramos una cuenta con ese correo.","auth/too-many-requests":"Demasiados intentos. Esperá un momento."};$("authMsg").textContent=map[err.code]||"No se pudo enviar el correo de recuperación.";}
+  finally{setBusy("")}
+};
 window.authSubmit=async(e)=>{
   e.preventDefault();
   const email=$("authEmail").value.trim(), pass=$("authPassword").value, name=$("authName").value.trim();
@@ -125,6 +139,20 @@ window.authSubmit=async(e)=>{
   }finally{setBusy("")}
 };
 window.logout=async()=>{if(confirm("¿Cerrar sesión?"))await signOut(auth)};
+window.deleteMyAccount=async()=>{
+  if(!currentUser)return;
+  const ok=confirm("ATENCIÓN: vas a eliminar el acceso de esta cuenta. Si todavía trabajás con estas máquinas, cancelá y hacé primero una Transferencia de respaldo.
+
+Los registros de la empresa NO se borrarán: quedarán conservados para mantener la trazabilidad. ¿Querés continuar?");
+  if(!ok)return;
+  if(!(await reauth()))return;
+  const confirm2=prompt("Para confirmar, escribí ELIMINAR CUENTA");
+  if(confirm2!=="ELIMINAR CUENTA"){toast("Cancelado. La cuenta sigue activa.");return}
+  setBusy("Eliminando acceso de la cuenta…");
+  try{await deleteUser(currentUser);toast("Cuenta eliminada. Ya no podrás iniciar sesión con este acceso.");}
+  catch(e){if(e.code==="auth/requires-recent-login")toast("Por seguridad, volvé a iniciar sesión y repetí la eliminación.");else toast("No se pudo eliminar la cuenta: "+(e.message||e));}
+  finally{setBusy("")}
+};
 
 async function loadCollection(name){
   const q=query(collection(db,name),where("ownerUid","==",currentUser.uid));
@@ -160,6 +188,7 @@ function show(id){
   if(id==="keys")module("keys",m=>KEY_TYPES.includes(m.tipo));
   if(id==="bajas")renderBajas();
   if(id==="catalog")renderCatalog();
+  if(id==="transfer")renderTransferList();
 }
 window.show=show;
 function home(){
@@ -249,13 +278,101 @@ function renderCatalog(){
   $("catalogList").innerHTML=all.map(n=>'<div class="item"><b>'+esc(n)+'</b></div>').join("")+ '<button class="btn primary" style="width:100%" onclick="addCatalog()">➕ Agregar categoría/modelo</button>';
 }
 window.addCatalog=async()=>{const n=prompt("Nombre de la nueva categoría o modelo:");if(!n||!n.trim())return;try{const data={nombre:n.trim(),tipo:"catalogo",creado:Date.now()};const docId=await addDocCloud("catalog",data);catalog.push({...data,docId});renderCatalog();}catch(e){toast("No se pudo agregar: "+e.message)}};
-function backup(){const b=new Blob([JSON.stringify({version:6,exportado:new Date().toISOString(),ownerUid:currentUser.uid,usuario:currentUser.email,machines,observations,maintenance,movements,catalog},null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="respaldo_inventario_firebase.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+let transferSelected=new Set();
+let pendingTransfer=null;
+function renderTransferList(){
+  const q=($('tr_filter')?.value||'').toLowerCase().trim();
+  const list=$('transferList'); if(!list)return;
+  const ms=machines.filter(m=>m.estado!=='Baja' && (!q || JSON.stringify(m).toLowerCase().includes(q)));
+  list.innerHTML=ms.length?ms.map(m=>{
+    const checked=transferSelected.has(m.rid)?'checked':'';
+    return '<label class="task"><input type="checkbox" '+checked+' onchange="toggleTransfer(\''+m.rid+'\',this.checked)"><span><b>'+esc(m.id)+'</b> · '+esc(m.tipo)+'<br><span class="muted">'+esc(m.provincia)+' · '+esc(m.localidad)+' · '+esc(m.ubicacion)+'</span></span></label>'
+  }).join(''):'<div class="muted">No hay máquinas para transferir con ese filtro.</div>';
+}
+window.renderTransferList=renderTransferList;
+window.toggleTransfer=(rid,on)=>{if(on)transferSelected.add(rid);else transferSelected.delete(rid)};
+window.selectAllTransfer=(on)=>{const q=($('tr_filter')?.value||'').toLowerCase().trim();machines.filter(m=>m.estado!=='Baja'&&(!q||JSON.stringify(m).toLowerCase().includes(q))).forEach(m=>on?transferSelected.add(m.rid):transferSelected.delete(m.rid));renderTransferList()};
+function makeTransferPackage(selected){
+  const selectedSet=new Set(selected.map(m=>m.rid));
+  const obs=observations.filter(x=>selectedSet.has(x.rid));
+  const maint=maintenance.filter(x=>selectedSet.has(x.rid));
+  const mov=movements.filter(x=>selectedSet.has(x.rid));
+  return {format:'inventario-transferencia-respaldo',version:1,exportado:new Date().toISOString(),origen:{uid:currentUser.uid,email:currentUser.email||'',nombre:currentUser.displayName||''},machines:selected,observations:obs,maintenance:maint,movements:mov};
+}
+async function exportTransfer(){
+  const selected=machines.filter(m=>transferSelected.has(m.rid));
+  if(!selected.length)return toast('Seleccioná al menos una máquina.');
+  if(!(await reauth()))return;
+  const pkg=makeTransferPackage(selected);
+  const b=new Blob([JSON.stringify(pkg,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  const stamp=new Date().toISOString().slice(0,10);
+  a.download='transferencia_de_respaldo_'+stamp+'.json';a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('Transferencia preparada. Mandale este archivo al otro técnico por WhatsApp.');
+}
+window.exportTransfer=exportTransfer;
+function previewTransfer(e){
+  const file=e.target.files?.[0],box=$('transferPreview'); pendingTransfer=null;
+  if(!file){box.innerHTML='';return}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const p=JSON.parse(reader.result);
+      if(p.format!=='inventario-transferencia-respaldo'||p.version!==1)throw new Error('El archivo no es una Transferencia de respaldo válida.');
+      if(!Array.isArray(p.machines)||!p.machines.length)throw new Error('El respaldo no contiene máquinas.');
+      if(p.machines.length>200)throw new Error('La transferencia supera el máximo de 200 máquinas por archivo.');
+      pendingTransfer=p;
+      const ids=p.machines.map(x=>x.rid).filter(Boolean);
+      const obsCount=(p.observations||[]).filter(x=>ids.includes(x.rid)).length;
+      const mtCount=(p.maintenance||[]).filter(x=>ids.includes(x.rid)).length;
+      const mvCount=(p.movements||[]).filter(x=>ids.includes(x.rid)).length;
+      box.innerHTML='<div class="card"><b>Transferencia válida</b><br>Origen: '+esc(p.origen?.nombre||p.origen?.email||'Otro técnico')+'<br>Máquinas: <b>'+p.machines.length+'</b><br>Observaciones: <b>'+obsCount+'</b><br>Mantenimientos: <b>'+mtCount+'</b><br>Movimientos: <b>'+mvCount+'</b><button class="btn primary" style="width:100%;margin-top:10px" onclick="importTransfer()">📥 Importar transferencia</button></div>';
+    }catch(err){box.innerHTML='<div class="error">'+esc(err.message||'Archivo inválido.')+'</div>'}
+  };
+  reader.readAsText(file);
+}
+window.previewTransfer=previewTransfer;
+async function importTransfer(){
+  if(!pendingTransfer)return;
+  if(!confirm('¿Importar estas '+pendingTransfer.machines.length+' máquinas a TU cuenta? Se conservarán sus historiales y se crearán identificadores internos nuevos.'))return;
+  setBusy('Importando transferencia…');
+  try{
+    const map=new Map();
+    const now=Date.now();
+    for(const src of pendingTransfer.machines){
+      const rid='r'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+      map.set(src.rid,rid);
+      const m={...src,rid,transferidoDesde:pendingTransfer.origen?.email||pendingTransfer.origen?.nombre||'otro técnico',transferidoEn:serverTimestamp()};
+      delete m.ownerUid;delete m.docId;
+      await saveDoc('machines',rid,m);machines.push(m);
+    }
+    const sourceIds=new Set(pendingTransfer.machines.map(x=>x.rid));
+    for(const src of (pendingTransfer.observations||[])){
+      if(!sourceIds.has(src.rid))continue; const d={...src,rid:map.get(src.rid)};delete d.ownerUid;delete d.docId;const id=await addDocCloud('observations',d);observations.push({...d,docId:id});
+    }
+    for(const src of (pendingTransfer.maintenance||[])){
+      if(!sourceIds.has(src.rid))continue; const d={...src,rid:map.get(src.rid)};delete d.ownerUid;delete d.docId;const id=await addDocCloud('maintenance',d);maintenance.push({...d,docId:id});
+    }
+    for(const src of (pendingTransfer.movements||[])){
+      if(!sourceIds.has(src.rid))continue; const d={...src,rid:map.get(src.rid)};delete d.ownerUid;delete d.docId;const id=await addDocCloud('movements',d);movements.push({...d,docId:id});
+    }
+    const transferTs=Date.now();
+    for(const src of pendingTransfer.machines){
+      const rid=map.get(src.rid),m=machine(rid);const data={rid,id:m.id,tipo:m.tipo,tipoMovimiento:'Transferencia de respaldo recibida',idAnterior:m.id,idNuevo:m.id,detalle:'Recibida desde '+(pendingTransfer.origen?.nombre||pendingTransfer.origen?.email||'otro técnico'),observaciones:'Transferencia realizada mediante archivo de respaldo. ID de fábrica conservado.',ts:transferTs,fecha:fmt(transferTs),origenUid:pendingTransfer.origen?.uid||''};const id=await addDocCloud('movements',data);movements.push({...data,docId:id});
+    }
+    pendingTransfer=null;$('transferFile').value='';$('transferPreview').innerHTML='<div class="card"><b>✅ Transferencia importada correctamente.</b><br>Las máquinas ahora pertenecen a esta cuenta y sus historiales quedaron asociados a ellas.</div>';show('home');toast('Transferencia completada.');
+  }catch(e){toast('No se pudo importar la transferencia: '+(e.message||e))}finally{setBusy('')}
+}
+window.importTransfer=importTransfer;
+
+function backup(){const b=new Blob([JSON.stringify({version:6,exportado:new Date().toISOString(),ownerUid:currentUser.uid,usuario:currentUser.email,machines,observations,maintenance,movements,catalog},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='respaldo_inventario_firebase.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 window.backup=backup;
 
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
   $("auth").classList.toggle("hidden",!!user);$("app").classList.toggle("hidden",!user);
-  if(user)await loadCloud(); else renderAuth();
+  if(user){$("accountEmail").textContent=user.email||"";await loadCloud();} else renderAuth();
 });
 renderAuth();
 </script>
