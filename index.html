@@ -83,6 +83,12 @@ const db = getFirestore(app);
 
 let currentUser=null, machines=[], observations=[], maintenance=[], movements=[], catalog=[];
 let authMode="login";
+
+const WAWA_TASKS=["Limpieza","Ajuste de tornillos del plato","Instalación de relé","Desinstalación de relé","Cambio de billetero","Cambio de fuente","Cambio de placa madre"];
+const PEL_TASKS=["Peluches agregados y anteriormente agregados","Limpieza","Cambio de bobina","Cambio de fuente","Cambio de display","Cambio de placa","Cambio de sensor","Cambio de relojes","Cambio de potenciómetros","Cambio de ploteo","Cambio de esquineros","Cambio de luces led techo","Cambio de luces LED laterales","Estructura y detallar","Cambio de orugas","Cambio de orrins"];
+const KEY_TASKS=["Limpieza","Ajuste del plato","Llaveros: cantidad anterior / cantidad actualmente","Ajuste o reparación de contador de vueltas","Relojes: detallar actual y calcular con el anterior","Sensor","Broches: detallar"];
+const PEL_TYPES=["Crazy Toy 3","Hip Hop Elf","Toy Soldier 2","Angel","Joy Player","Future Melody","Melody Grido"];
+const KEY_TYPES=["Free Luck","Future Melody Clip"];
 const $=id=>document.getElementById(id);
 function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function fmt(ts){return new Date(ts).toLocaleString("es-AR")}
