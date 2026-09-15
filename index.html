@@ -48,6 +48,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <button class="card btn" onclick="show('catalog')">📚<br>Catálogo</button>
 <button class="card btn" onclick="backup()">💾<br>Respaldo</button>
 <button class="card btn blue" onclick="show('transfer')">🔄<br>Transferencia de respaldo</button>
+<button id="supervisorBtn" class="card btn" style="background:#ede9fe;color:#5b21b6" onclick="show('supervisor');renderSupervisor()">👨‍💼<br>Panel supervisor</button>
 <button class="card btn" style="background:#fee2e2;color:#991b1b" onclick="show('account')">⚠️<br>Cuenta</button>
 </div><div class="card"><div class="title">📊 Resumen</div><div id="summary"></div></div>
 <div class="card"><b>🔒 Seguridad</b><div class="muted">Cada registro pertenece a tu cuenta. Las correcciones de ID y las bajas requieren volver a verificar tu contraseña.</div></div>
@@ -63,7 +64,8 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <section id="bajas" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🗑️ Máquinas dadas de baja</div><div class="muted">No se eliminan: quedan conservadas con todo su historial.</div><div id="bajasList"></div></section>
 <section id="catalog" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📚 Catálogo ampliable</div><div class="muted">El catálogo es independiente del inventario real.</div><div id="catalogList"></div></section>
 <section id="transfer" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Transferencia de respaldo</div><div class="muted">Pasá máquinas seleccionadas a otro técnico mediante un archivo. Se conservan los datos y el historial; la otra cuenta recibe copias propias y separadas.</div><div class="card"><b>📤 Enviar respaldo</b><label>Filtrar por localidad, provincia, ID o tipo</label><input id="tr_filter" placeholder="Ej.: Resistencia, Chaco, PCH..." oninput="renderTransferList()"><div style="margin:8px 0"><button class="btn" onclick="selectAllTransfer(true)">Seleccionar todas</button> <button class="btn" onclick="selectAllTransfer(false)">Limpiar selección</button></div><div id="transferList"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="exportTransfer()">📤 Generar transferencia</button></div><div class="card"><b>📥 Recibir respaldo</b><div class="muted">Elegí el archivo que te envió otro técnico. Antes de guardar, la app te mostrará cuántas máquinas e historiales contiene.</div><input id="transferFile" type="file" accept="application/json,.json" onchange="previewTransfer(event)"><div id="transferPreview" style="margin-top:8px"></div></div></section>
-<section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #bfdbfe"><div class="title">👥 Equipo compartido</div><div class="muted">Cuando dos cuentas pertenecen al mismo equipo, trabajan sobre la misma base: si uno modifica una máquina, el otro verá el cambio al sincronizar. El historial también queda compartido.</div><div id="teamStatus" style="margin-top:10px"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="createTeam()">➕ Crear equipo y compartir mi inventario</button><button class="btn" style="width:100%;margin-top:8px" onclick="joinTeam()">🔗 Unirme con código de equipo</button></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta.</p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros compartidos no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
+<section id="supervisor" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">👨‍💼 Panel de supervisión y administración</div><div id="supervisorGuard" class="muted"></div><div id="supervisorPanel"></div></section>
+<section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #bfdbfe"><div class="title">👥 Equipo compartido</div><div class="muted">Cuando las cuentas pertenecen al mismo equipo, trabajan sobre la misma base. Los técnicos ven sus máquinas asignadas y el supervisor puede administrarlas. El historial queda compartido.</div><div id="teamStatus" style="margin-top:10px"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="createTeam()">➕ Crear equipo y compartir mi inventario</button><button class="btn" style="width:100%;margin-top:8px" onclick="joinTeam()">🔗 Unirme con código de equipo</button></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta.</p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros compartidos no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
 <section id="detail" class="hidden"></section>
 </main>
 <nav class="bottom"><button onclick="show('home')">🏠<br>Inicio</button><button onclick="show('search')">🔎<br>Buscar</button><button onclick="show('obs')">📝<br>Obs.</button><button onclick="show('moves')">🔄<br>Mov.</button></nav>
@@ -202,6 +204,7 @@ async function loadCollection(name){
     : query(collection(db,name),where("ownerUid","==",currentUser.uid));
   const snap=await getDocs(q); return snap.docs.map(d=>({docId:d.id,...d.data()}));
 }
+function updateRoleUI(){const b=$("supervisorBtn");if(b)b.classList.toggle("hidden",!(userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico"));}
 function updateTeamStatus(){
   const el=$("teamStatus"); if(!el)return;
   if(currentTeamId) el.innerHTML='<div class="card" style="background:#ecfdf5"><b>🟢 Equipo activo</b><br><span class="muted">Código: '+esc(currentTeamId)+'</span><br><span class="muted">Todos los miembros autorizados trabajan sobre la misma base.</span></div>';
@@ -214,18 +217,18 @@ async function createTeam(){
   const teamId="EQ-"+Math.random().toString(36).slice(2,8).toUpperCase();
   setBusy("Creando equipo y sincronizando tu inventario…");
   try{
-    await setDoc(doc(db,"teams",teamId),{nombre:name,ownerUid:currentUser.uid,creadoEn:serverTimestamp()});
-    await setDoc(doc(db,"users",currentUser.uid),{ownerUid:currentUser.uid,nombre:currentUser.displayName||"",email:currentUser.email||"",teamId,role:"owner"},{merge:true});
+    await setDoc(doc(db,"teams",teamId),{nombre:name,ownerUid:currentUser.uid,supervisorUid:null,creadoEn:serverTimestamp()});
+    await setDoc(doc(db,"users",currentUser.uid),{ownerUid:currentUser.uid,nombre:currentUser.displayName||"",email:currentUser.email||"",teamId,role:"admin_tecnico"},{merge:true});
     const collections={machines,observations,maintenance,movements,catalog};
     for(const [name,list] of Object.entries(collections)){
       const batch=writeBatch(db); let n=0;
       for(const item of list){const did=item.docId || (name==="machines" ? item.rid : null); if(!did)continue; batch.update(doc(db,name,did),{teamId}); n++; if(n===450){await batch.commit(); n=0;}}
       if(n)await batch.commit();
     }
-    currentTeamId=teamId; userProfile={...(userProfile||{}),teamId,role:"owner"};
+    currentTeamId=teamId; userProfile={...(userProfile||{}),teamId,role:"admin_tecnico"};
     startRealtimeSync();
     updateTeamStatus(); home();
-    alert("Equipo creado. Compartí este código con tu supervisor:\n\n"+teamId+"\n\nCuando él lo ingrese en su cuenta, ambos verán y podrán modificar el mismo inventario.");
+    alert("Equipo creado. Compartí este código con tu supervisor para que él se incorpore como supervisor del equipo:\n\n"+teamId+"\n\nCuando él lo ingrese en su cuenta, ambos verán y podrán modificar el mismo inventario.");
   }catch(e){toast("No se pudo crear el equipo: "+(e.message||e))}finally{setBusy("")}
 }
 window.createTeam=createTeam;
@@ -238,8 +241,16 @@ async function joinTeam(){
     const team=await getDoc(doc(db,"teams",code));
     if(!team.exists())return toast("No encontré ese equipo. Revisá el código.");
     const data=team.data();
-    await setDoc(doc(db,"users",currentUser.uid),{ownerUid:currentUser.uid,nombre:currentUser.displayName||"",email:currentUser.email||"",teamId:code,role:"member"},{merge:true});
-    currentTeamId=code; userProfile={...(userProfile||{}),teamId:code,role:"member"};
+    let role="tecnico";
+    if(!data.supervisorUid){
+      const quiereSupervisor=confirm("¿Esta cuenta es la del SUPERVISOR de este equipo?\n\nAceptar = Supervisor\nCancelar = Técnico");
+      if(quiereSupervisor){
+        await updateDoc(doc(db,"teams",code),{supervisorUid:currentUser.uid});
+        role="supervisor";
+      }
+    }
+    await setDoc(doc(db,"users",currentUser.uid),{ownerUid:currentUser.uid,nombre:currentUser.displayName||"",email:currentUser.email||"",teamId:code,role},{merge:true});
+    currentTeamId=code; userProfile={...(userProfile||{}),teamId:code,role};
     await loadCloud();
     updateTeamStatus();
     toast("Te uniste al equipo "+(data.nombre||code)+". Ahora ambos comparten el mismo inventario.");
@@ -286,8 +297,8 @@ async function loadCloud(){
     show("home"); home();
   }catch(err){console.error(err);toast("No pude cargar tu base: "+(err.message||err))}finally{setBusy("")}
 }
-async function saveDoc(name,id,data){await setDoc(doc(db,name,id),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{})})}
-async function addDocCloud(name,data){const ref=await addDoc(collection(db,name),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{})});return ref.id}
+async function saveDoc(name,id,data){await setDoc(doc(db,name,id),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{}),...(name==="machines" && currentTeamId && !data.assignedUid?{assignedUid:currentUser.uid,assignedNombre:currentUser.displayName||""}:{})})}
+async function addDocCloud(name,data){const ref=await addDoc(collection(db,name),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{}),...(name==="machines" && currentTeamId && !data.assignedUid?{assignedUid:currentUser.uid,assignedNombre:currentUser.displayName||""}:{})});return ref.id}
 
 function show(id){
   document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));
@@ -478,13 +489,82 @@ async function importTransfer(){
 }
 window.importTransfer=importTransfer;
 
+async function renderSupervisor(){
+  const box=$("supervisorPanel"),guard=$("supervisorGuard"); if(!box||!guard)return;
+  const isSup=currentTeamId && (userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico");
+  if(!isSup){guard.textContent="Esta sección es exclusiva del supervisor.";box.innerHTML="";return}
+  guard.innerHTML="Equipo: <b>"+esc(currentTeamId)+"</b> · Administrá técnicos, zonas, sectores y delegaciones.";
+  setBusy("Cargando técnicos…");
+  try{
+    const usersSnap=await getDocs(query(collection(db,"users"),where("teamId","==",currentTeamId)));
+    const users=usersSnap.docs.map(d=>({uid:d.id,...d.data()}));
+    const techs=users.filter(u=>u.role!=="supervisor");
+    const sups=users.filter(u=>u.role==="supervisor");
+    const assigned=machines.filter(m=>m.teamId===currentTeamId);
+    const byUid={}; assigned.forEach(m=>{const uid=m.assignedUid||m.ownerUid; (byUid[uid]??=[]).push(m)});
+    let html='<div class="card"><b>👥 Técnicos</b><div class="muted">'+techs.length+' técnico(s) · '+assigned.length+' máquina(s) en el equipo</div></div>';
+    if(!techs.length) html+='<div class="card">Todavía no hay técnicos agregados al equipo.</div>';
+    techs.forEach(t=>{
+      const list=byUid[t.uid]||[]; const zones=[...new Set(list.map(m=>m.zona||m.provincia||"Sin zona").filter(Boolean))];
+      html+='<div class="card"><div class="title">👤 '+esc(t.nombre||t.email||t.uid)+'</div><div class="muted">'+esc(t.email||'')+'</div><div style="margin:8px 0"><span class="tag">📍 '+esc(zones.join(', ')||'Sin zona asignada')+'</span> <span class="tag">🎰 '+list.length+' máquinas</span></div><button class="btn blue" style="width:100%" onclick="openSupervisorTech(\''+t.uid+'\')">Ver técnico y máquinas</button></div>';
+    });
+    html+='<div class="card" style="border:1px solid #ddd6fe"><div class="title">🔄 Delegar zona / sector / máquinas</div><div class="muted">Seleccioná un técnico de origen, un sector o máquinas concretas y asignalas a otro técnico. El historial no se borra.</div><div id="delegateBox" style="margin-top:10px"></div></div>';
+    box.innerHTML=html;
+    renderDelegateBox(techs,assigned);
+  }catch(e){box.innerHTML='<div class="error">No pude cargar el panel: '+esc(e.message||e)+'</div>'}finally{setBusy("")}
+}
+window.renderSupervisor=renderSupervisor;
+async function openSupervisorTech(uid){
+  const u=await getDoc(doc(db,"users",uid)); if(!u.exists())return toast("No encontré ese técnico.");
+  const tech={uid,...u.data()}, list=machines.filter(m=>(m.assignedUid||m.ownerUid)===uid);
+  let html='<button class="btn" onclick="renderSupervisor()">← Volver</button><div class="title">👤 '+esc(tech.nombre||tech.email)+'</div><div class="card"><b>Zona(s):</b> '+esc([...new Set(list.map(m=>m.zona||m.provincia||'Sin zona'))].join(', ')||'Sin asignar')+'<br><b>Máquinas:</b> '+list.length+'</div>';
+  list.forEach(m=>{html+='<div class="item"><b>'+esc(m.id||m.rid)+'</b> · '+esc(m.tipo||'')+'<br><span class="muted">'+esc(m.provincia||'')+' · '+esc(m.localidad||'')+' · Sector: '+esc(m.sector||'Sin sector')+'</span></div>'});
+  $("supervisorPanel").innerHTML=html;
+}
+window.openSupervisorTech=openSupervisorTech;
+function renderDelegateBox(techs,assigned){
+  const box=$("delegateBox"); if(!box)return;
+  if(techs.length<1){box.innerHTML='<div class="muted">Agregá al menos un técnico al equipo para poder delegar.</div>';return}
+  const options=techs.map(t=>'<option value="'+t.uid+'">'+esc(t.nombre||t.email)+'</option>').join('');
+  const machinesOptions=assigned.map(m=>'<option value="'+m.rid+'">'+esc((m.id||m.rid)+' · '+(m.localidad||'Sin localidad')+' · '+(m.sector||'Sin sector'))+'</option>').join('');
+  box.innerHTML='<label>Nuevo responsable</label><select id="delTarget">'+options+'</select><label>Tipo de delegación</label><select id="delMode" onchange="toggleDelegateMode()"><option value="machines">Máquinas seleccionadas</option><option value="sector">Sector</option><option value="zone">Zona completa</option></select><div id="delCriteria"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="delegateNow()">🔄 Delegar</button>';
+  window.__delegateMachines=assigned; window.__delegateTechs=techs; window.__delegateMachineOptions=machinesOptions; toggleDelegateMode();
+}
+window.renderDelegateBox=renderDelegateBox;
+function toggleDelegateMode(){
+  const c=$("delCriteria"),mode=$("delMode")?.value;if(!c)return;
+  if(mode==="machines")c.innerHTML='<label>Máquinas (podés elegir varias)</label><select id="delMachines" multiple size="7">'+(window.__delegateMachineOptions||'')+'</select><div class="muted">En Android mantené presionada una opción para seleccionar varias.</div>';
+  else if(mode==="sector"){
+    const sectors=[...new Set((window.__delegateMachines||[]).map(m=>m.sector||'Sin sector'))];c.innerHTML='<label>Sector</label><select id="delSector">'+sectors.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>';
+  }else{
+    const zones=[...new Set((window.__delegateMachines||[]).map(m=>m.zona||m.provincia||'Sin zona'))];c.innerHTML='<label>Zona</label><select id="delZone">'+zones.map(x=>'<option>'+esc(x)+'</option>').join('')+'</select>';
+  }
+}
+window.toggleDelegateMode=toggleDelegateMode;
+async function delegateNow(){
+  if(!(userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico"))return toast("Solo el supervisor o administrador puede delegar.");
+  const target=$("delTarget")?.value, mode=$("delMode")?.value; if(!target)return;
+  let list=[];
+  if(mode==="machines") list=[...($("delMachines")?.selectedOptions||[])].map(o=>o.value);
+  else if(mode==="sector") {const v=$("delSector")?.value;list=(window.__delegateMachines||[]).filter(m=>(m.sector||'Sin sector')===v).map(m=>m.rid)}
+  else {const v=$("delZone")?.value;list=(window.__delegateMachines||[]).filter(m=>(m.zona||m.provincia||'Sin zona')===v).map(m=>m.rid)}
+  if(!list.length)return toast("No seleccionaste máquinas.");
+  const targetTech=window.__delegateTechs?.find(t=>t.uid===target); const targetName=targetTech?.nombre||targetTech?.email||target;
+  if(!confirm("¿Delegar "+list.length+" máquina(s) a "+targetName+"?\\n\\nEl historial se conserva y cambia solamente el responsable actual."))return;
+  setBusy("Delegando máquinas…");
+  try{
+    for(const rid of list){const m=machines.find(x=>x.rid===rid);if(!m)continue;await updateDoc(doc(db,"machines",m.docId||m.rid),{assignedUid:target,assignedNombre:targetName,delegadoPor:currentUser.uid,delegadoEn:serverTimestamp()});}
+    toast("Delegación completada."); await loadCloud(); renderSupervisor();
+  }catch(e){toast("No se pudo completar la delegación: "+(e.message||e))}finally{setBusy("")}
+}
+window.delegateNow=delegateNow;
 function backup(){const b=new Blob([JSON.stringify({version:6,exportado:new Date().toISOString(),ownerUid:currentUser.uid,usuario:currentUser.email,machines,observations,maintenance,movements,catalog},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='respaldo_inventario_firebase.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 window.backup=backup;
 
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
   $("auth").classList.toggle("hidden",!!user);$("app").classList.toggle("hidden",!user);
-  if(user){$("accountEmail").textContent=user.email||"";await loadUserProfile();await loadCloud();updateTeamStatus();} else {stopRealtimeSync();currentTeamId=null;userProfile=null;renderAuth();}
+  if(user){$("accountEmail").textContent=user.email||"";await loadUserProfile();await loadCloud();updateTeamStatus();updateRoleUI();} else {stopRealtimeSync();currentTeamId=null;userProfile=null;updateRoleUI();renderAuth();}
 });
 renderAuth();
 window.__appBooted=true;
