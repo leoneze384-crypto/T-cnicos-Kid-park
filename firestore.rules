@@ -1,48 +1,121 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() {
-      return request.auth != null;
-    }
-
-    function myTeam() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.teamId;
-    }
-
-    function canReadOrWrite(data) {
-      return signedIn() && (
-        data.ownerUid == request.auth.uid ||
-        (data.teamId != null && myTeam() != null && data.teamId == myTeam())
-      );
-    }
+    function signedIn() { return request.auth != null; }
+    function myUser() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function myTeam() { return myUser().teamId; }
+    function isSupervisor() { return signedIn() && myUser().role == 'supervisor'; }
+    function isAdminTech() { return signedIn() && myUser().role == 'admin_tecnico'; }
+    function canManageTeam() { return isSupervisor() || isAdminTech(); }
+    function sameTeam(data) { return signedIn() && data.teamId != null && myTeam() != null && data.teamId == myTeam(); }
+    function canRead(data) { return signedIn() && (data.ownerUid == request.auth.uid || sameTeam(data)); }
 
     match /users/{uid} {
-      allow create: if signedIn() && uid == request.auth.uid;
-      allow read: if signedIn() && uid == request.auth.uid;
-      allow update: if signedIn() && uid == request.auth.uid;
+      allow create: if signedIn() && uid == request.auth.uid
+        && request.resource.data.role == 'tecnico'
+        && request.resource.data.teamId == null;
+
+      allow read: if signedIn() && (
+        uid == request.auth.uid ||
+        (resource.data.teamId != null && resource.data.teamId == myTeam())
+      );
+
+      // A user may edit their own profile details, but may NOT self-promote.
+      // Joining a team is the only self-service role/team transition and it can only produce 'tecnico'.
+      allow update: if signedIn() && (
+        (
+          uid == request.auth.uid &&
+          request.resource.data.role == 'tecnico' &&
+          (!resource.data.keys().hasAll(['role']) || resource.data.role == 'tecnico') &&
+          (
+            request.resource.data.teamId == resource.data.teamId ||
+            (
+              resource.data.teamId == null &&
+              request.resource.data.teamId != null &&
+              exists(/databases/$(database)/documents/teams/$(request.resource.data.teamId))
+            )
+          )
+        ) ||
+        (
+          canManageTeam() &&
+          resource.data.teamId == myTeam() &&
+          request.resource.data.teamId == resource.data.teamId &&
+          request.resource.data.role in ['tecnico','supervisor']
+        )
+      );
       allow delete: if false;
     }
 
     match /teams/{teamId} {
-      allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && canManageTeam()
+        && request.resource.data.ownerUid == request.auth.uid;
+      allow update: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid ||
+        (isAdminTech() && request.resource.data.ownerUid == resource.data.ownerUid) ||
+        (resource.data.supervisorUid == null && request.resource.data.supervisorUid == request.auth.uid && isSupervisor())
+      );
+      allow delete: if false;
     }
 
-    match /{collection}/{docId} {
-      allow read: if canReadOrWrite(resource.data);
+    match /zones/{zoneId} {
+      allow read: if signedIn() && resource.data.teamId == myTeam();
+      allow create: if signedIn() && (
+        (canManageTeam() && request.resource.data.teamId == myTeam()) ||
+        (
+          request.resource.data.ownerUid == request.auth.uid &&
+          request.resource.data.tecnicoUid == request.auth.uid &&
+          request.resource.data.teamId != null &&
+          exists(/databases/$(database)/documents/teams/$(request.resource.data.teamId)) &&
+          zoneId == request.resource.data.teamId + "_" + request.auth.uid
+        )
+      );
+      allow update: if canManageTeam() && resource.data.teamId == myTeam();
+      allow delete: if false;
+    }
+
+    match /machines/{machineId} {
+      allow read: if signedIn() && (
+        resource.data.ownerUid == request.auth.uid ||
+        (sameTeam(resource.data) && (canManageTeam() || resource.data.assignedUid == request.auth.uid))
+      );
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
+        && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
+      allow update: if canRead(resource.data)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.teamId == resource.data.teamId
         && (
-          request.resource.data.teamId == null ||
-          (myTeam() != null && request.resource.data.teamId == myTeam())
-        );
-      allow update: if canReadOrWrite(resource.data)
-        && (
-          request.resource.data.teamId == resource.data.teamId ||
-          (request.resource.data.ownerUid == request.auth.uid && myTeam() != null && request.resource.data.teamId == myTeam())
+          canManageTeam() ||
+          request.resource.data.assignedUid == resource.data.assignedUid
         );
       allow delete: if false;
     }
+
+    match /observations/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
+      allow update, delete: if false;
+    }
+    match /maintenance/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
+      allow update, delete: if false;
+    }
+    match /movements/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
+      allow update, delete: if false;
+    }
+    match /catalog/{id} {
+      allow read: if canRead(resource.data);
+      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
+      allow update: if canRead(resource.data) && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.teamId == resource.data.teamId;
+      allow delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
   }
 }
