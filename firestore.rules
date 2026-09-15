@@ -84,12 +84,20 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.ownerUid == request.auth.uid
         && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
-      allow update: if canRead(resource.data)
-        && request.resource.data.ownerUid == resource.data.ownerUid
-        && request.resource.data.teamId == resource.data.teamId
-        && (
-          canManageTeam() ||
-          request.resource.data.assignedUid == resource.data.assignedUid
+      allow update: if (
+          canRead(resource.data)
+          && request.resource.data.ownerUid == resource.data.ownerUid
+          && request.resource.data.teamId == resource.data.teamId
+          && (
+            canManageTeam() ||
+            request.resource.data.assignedUid == resource.data.assignedUid
+          )
+        ) || (
+          isAdminTech()
+          && resource.data.ownerUid == request.auth.uid
+          && resource.data.teamId == null
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.teamId == myTeam()
         );
       allow delete: if false;
     }
@@ -97,22 +105,25 @@ service cloud.firestore {
     match /observations/{id} {
       allow read: if canRead(resource.data);
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
-      allow update, delete: if false;
+      allow update: if isAdminTech() && resource.data.ownerUid == request.auth.uid && resource.data.teamId == null && request.resource.data.ownerUid == request.auth.uid && request.resource.data.teamId == myTeam();
+      allow delete: if false;
     }
     match /maintenance/{id} {
       allow read: if canRead(resource.data);
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
-      allow update, delete: if false;
+      allow update: if isAdminTech() && resource.data.ownerUid == request.auth.uid && resource.data.teamId == null && request.resource.data.ownerUid == request.auth.uid && request.resource.data.teamId == myTeam();
+      allow delete: if false;
     }
     match /movements/{id} {
       allow read: if canRead(resource.data);
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
-      allow update, delete: if false;
+      allow update: if isAdminTech() && resource.data.ownerUid == request.auth.uid && resource.data.teamId == null && request.resource.data.ownerUid == request.auth.uid && request.resource.data.teamId == myTeam();
+      allow delete: if false;
     }
     match /catalog/{id} {
       allow read: if canRead(resource.data);
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam());
-      allow update: if canRead(resource.data) && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.teamId == resource.data.teamId;
+      allow update: if (canRead(resource.data) && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.teamId == resource.data.teamId) || (isAdminTech() && resource.data.ownerUid == request.auth.uid && resource.data.teamId == null && request.resource.data.ownerUid == request.auth.uid && request.resource.data.teamId == myTeam());
       allow delete: if false;
     }
 

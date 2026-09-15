@@ -218,8 +218,10 @@ function updateRoleUI(){
 }
 function updateTeamStatus(){
   const el=$("teamStatus"); if(!el)return;
-  if(currentTeamId) el.innerHTML='<div class="card" style="background:#ecfdf5"><b>🟢 Equipo activo</b><br><span class="muted">Código: '+esc(currentTeamId)+'</span><br><span class="muted">Todos los miembros autorizados trabajan sobre la misma base.</span></div>';
-  else el.innerHTML='<div class="muted">Actualmente estás trabajando con tu base personal.</div>';
+  if(currentTeamId) {
+    el.innerHTML='<div class="card" style="background:#ecfdf5"><b>🟢 Equipo activo</b><br><span class="muted">Código: '+esc(currentTeamId)+'</span><br><span class="muted">Todos los miembros autorizados trabajan sobre la misma base.</span></div>'
+      + (userProfile?.role==="admin_tecnico" ? '<button class="btn" style="width:100%;margin-top:8px" onclick="migratePersonalBase()">☁️ Vincular mi base personal al equipo</button><div class="muted" style="margin-top:6px">Esto conserva máquinas e historial y solo agrega el equipo a tus registros personales.</div>' : '');
+  } else el.innerHTML='<div class="muted">Actualmente estás trabajando con tu base personal.</div>';
 }
 async function createTeam(){
   if(!canManage())return toast("Solo el administrador o supervisor puede crear un equipo.");
@@ -245,6 +247,33 @@ async function createTeam(){
   }catch(e){toast("No se pudo crear el equipo: "+(e.message||e))}finally{setBusy("")}
 }
 window.createTeam=createTeam;
+async function migratePersonalBase(){
+  if(userProfile?.role!=="admin_tecnico")return toast("Solo el administrador puede vincular la base personal al equipo.");
+  if(!currentTeamId)return toast("Primero necesitás un equipo activo.");
+  if(!(await reauth()))return;
+  if(!confirm("Esto vinculará al equipo todos los registros personales que pertenecen a tu cuenta y todavía no tienen teamId. No se borrará ningún dato. ¿Continuar?"))return;
+  setBusy("Vinculando tu base personal…");
+  try{
+    const names=["machines","observations","maintenance","movements","catalog"];
+    let total=0;
+    for(const name of names){
+      const snap=await getDocs(query(collection(db,name),where("ownerUid","==",currentUser.uid)));
+      let batch=writeBatch(db),n=0;
+      for(const d of snap.docs){
+        const data=d.data();
+        if(data.teamId===currentTeamId)continue;
+        if(data.teamId!=null)continue;
+        batch.update(d.ref,{teamId:currentTeamId});
+        n++; total++;
+        if(n===450){await batch.commit();batch=writeBatch(db);n=0;}
+      }
+      if(n)await batch.commit();
+    }
+    await loadCloud(); updateTeamStatus(); updateRoleUI();
+    toast("Base vinculada. Registros asociados al equipo: "+total);
+  }catch(e){toast("No se pudo vincular la base: "+(e.message||e))}finally{setBusy("")}
+}
+window.migratePersonalBase=migratePersonalBase;
 async function joinTeam(){
   if(currentTeamId)return toast("Ya pertenecés a un equipo. Código: "+currentTeamId);
   const code=(prompt("Pegá el código que te dio el responsable del inventario:")||"").trim().toUpperCase();
