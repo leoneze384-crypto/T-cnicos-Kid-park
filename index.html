@@ -97,7 +97,7 @@ const [firebaseApp, firebaseAuth, firebaseFirestore] = await Promise.all([
 ]);
 const { initializeApp } = firebaseApp;
 const { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } = firebaseAuth;
-const { getFirestore, collection, query, where, getDocs, getDoc, doc, setDoc, addDoc, updateDoc, writeBatch, onSnapshot, serverTimestamp } = firebaseFirestore;
+const { getFirestore, collection, query, where, getDocs, getDoc, doc, setDoc, addDoc, updateDoc, deleteDoc, writeBatch, onSnapshot, serverTimestamp } = firebaseFirestore;
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8QRsOvK1taD45Zo6xOAolfUnAn8l0_Lg",
@@ -561,7 +561,7 @@ async function renderSupervisor(){
     const assigned=machines.filter(m=>m.teamId===currentTeamId);
     const byUid={}; assigned.forEach(m=>{const uid=m.assignedUid||m.ownerUid; (byUid[uid]??=[]).push(m)});
     let html='<div class="card"><b>👥 Técnicos</b><div class="muted">'+techs.length+' técnico(s) · '+assigned.length+' máquina(s) en el equipo</div></div>';
-    html+='<div class="card" style="border:1px solid #bfdbfe"><div class="title">📍 Zonas</div><div class="muted">Las zonas registradas por los técnicos quedan visibles para administración.</div>'+(zones.length?zones.map(z=>'<div class="item"><b>'+esc(z.zona||'Sin zona')+'</b><br><span class="muted">👤 '+esc(z.tecnicoNombre||z.tecnicoUid||'Sin técnico')+'</span></div>').join(''):'<div class="muted">Todavía no hay zonas registradas.</div>')+'</div>';
+    html+='<div class="card" style="border:1px solid #bfdbfe"><div class="title">📍 Zonas</div><div class="muted">Las zonas registradas por los técnicos quedan visibles para administración.</div>'+(zones.length?zones.map(z=>'<div class="item"><b>'+esc(z.zona||'Sin zona')+'</b><br><span class="muted">👤 '+esc(z.tecnicoNombre||z.tecnicoUid||'Sin técnico')+'</span><button class="btn blue" style="width:100%;margin-top:8px" onclick="assignZone(\''+z.id+'\')">👤 Asignar / cambiar responsable</button><button class="btn" style="width:100%;margin-top:6px;color:#991b1b" onclick="deleteZone(\''+z.id+'\')">🗑️ Eliminar zona</button></div>').join(''):'<div class="muted">Todavía no hay zonas registradas.</div>')+'</div>';
     if(!techs.length) html+='<div class="card">Todavía no hay técnicos agregados al equipo.</div>';
     techs.forEach(t=>{
       const list=byUid[t.uid]||[]; const zones=[...new Set(list.map(m=>m.zona||m.provincia||"Sin zona").filter(Boolean))];
@@ -583,6 +583,59 @@ async function createZone(){
   }catch(e){toast("No se pudo crear la zona: "+(e.message||e))}
 }
 window.createZone=createZone;
+async function assignZone(zoneId){
+  if(!canManage())return toast("Solo el administrador o supervisor puede asignar zonas.");
+  const zoneSnap=await getDoc(doc(db,"zones",zoneId));
+  if(!zoneSnap.exists())return toast("No encontré esa zona.");
+  const zone={id:zoneSnap.id,...zoneSnap.data()};
+  const usersSnap=await getDocs(query(collection(db,"users"),where("teamId","==",currentTeamId)));
+  const techs=usersSnap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>u.role==="tecnico"||u.role==="supervisor");
+  if(!techs.length)return toast("No hay técnicos disponibles en el equipo.");
+  const options=techs.map((t,i)=>(i+1)+" — "+(t.nombre||t.email||t.uid)).join("\n");
+  const answer=prompt("Zona: "+(zone.zona||zone.id)+"\n\nElegí el número del nuevo responsable:\n\n"+options);
+  if(answer===null)return;
+  const idx=Number(answer)-1;
+  const target=techs[idx];
+  if(!target)return toast("Selección inválida.");
+  const targetName=target.nombre||target.email||target.uid;
+  if(!confirm("¿Asignar la zona \""+(zone.zona||zone.id)+"\" a "+targetName+"?"))return;
+  setBusy("Asignando zona…");
+  try{
+    await updateDoc(doc(db,"zones",zoneId),{tecnicoUid:target.uid,tecnicoNombre:targetName,asignadoPor:currentUser.uid,asignadoEn:serverTimestamp(),actualizadoEn:serverTimestamp()});
+    await setDoc(doc(db,"users",target.uid),{zonaId:zoneId,zonaNombre:zone.zona||zone.id},{merge:true});
+    const zoneMachines=machines.filter(m=>m.teamId===currentTeamId&&(m.zona||m.provincia||"")===zone.zona);
+    for(const m of zoneMachines){
+      await updateDoc(doc(db,"machines",m.docId||m.rid),{assignedUid:target.uid,assignedNombre:targetName,delegadoPor:currentUser.uid,delegadoEn:serverTimestamp()});
+    }
+    toast("Zona asignada a "+targetName+(zoneMachines.length?" y "+zoneMachines.length+" máquina(s) vinculadas.":"."));
+    await loadCloud();
+    await renderSupervisor();
+  }catch(e){toast("No se pudo asignar la zona: "+(e.message||e))}finally{setBusy("")}
+}
+window.assignZone=assignZone;
+async function deleteZone(zoneId){
+  if(!canManage())return toast("Solo el administrador o supervisor puede eliminar zonas.");
+  const zoneSnap=await getDoc(doc(db,"zones",zoneId));
+  if(!zoneSnap.exists())return toast("La zona ya no existe.");
+  const zone={id:zoneSnap.id,...zoneSnap.data()};
+  const zoneName=zone.zona||zone.id;
+  const zoneMachines=machines.filter(m=>m.teamId===currentTeamId&&(m.zona||m.provincia||"")===zone.zona);
+  if(zoneMachines.length){
+    return alert("No se puede eliminar esta zona todavía. Tiene "+zoneMachines.length+" máquina(s) asociada(s). Primero delegá o reasigná esas máquinas para evitar datos huérfanos.");
+  }
+  if(!confirm("¿Eliminar la zona \""+zoneName+"\"?\n\nEsta acción es solo para borrar una zona de prueba. El historial y las máquinas no se borran."))return;
+  setBusy("Eliminando zona…");
+  try{
+    await deleteDoc(doc(db,"zones",zoneId));
+    if(zone.tecnicoUid){
+      const u=await getDoc(doc(db,"users",zone.tecnicoUid));
+      if(u.exists() && u.data().zonaId===zoneId) await updateDoc(doc(db,"users",zone.tecnicoUid),{zonaId:null,zonaNombre:null});
+    }
+    toast("Zona eliminada: "+zoneName);
+    await renderSupervisor();
+  }catch(e){toast("No se pudo eliminar la zona: "+(e.message||e))}finally{setBusy("")}
+}
+window.deleteZone=deleteZone;
 window.renderSupervisor=renderSupervisor;
 async function openSupervisorTech(uid){
   const u=await getDoc(doc(db,"users",uid)); if(!u.exists())return toast("No encontré ese técnico.");

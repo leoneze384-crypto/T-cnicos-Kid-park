@@ -73,7 +73,7 @@ service cloud.firestore {
         )
       );
       allow update: if canManageTeam() && resource.data.teamId == myTeam();
-      allow delete: if false;
+      allow delete: if canManageTeam() && resource.data.teamId == myTeam();
     }
 
     match /machines/{machineId} {
