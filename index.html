@@ -16,11 +16,11 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
 \n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}</style></head><body>
-<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · datos separados por técnico</div></header>
+<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo</div></header>
 <section id="auth" class="authWrap">
   <div class="authCard">
     <div class="title" id="authTitle">Iniciar sesión</div>
-    <div class="muted">Entrá con tu cuenta de técnico para acceder únicamente a tu propia base.</div>
+    <div class="muted">Entrá con tu cuenta. Podés trabajar con tu inventario propio o con un equipo compartido.</div>
     <form onsubmit="authSubmit(event)">
       <div id="nameWrap" class="hidden"><label>Nombre del técnico</label><input id="authName" autocomplete="name"></div>
       <label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="username" required>
@@ -63,7 +63,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <section id="bajas" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🗑️ Máquinas dadas de baja</div><div class="muted">No se eliminan: quedan conservadas con todo su historial.</div><div id="bajasList"></div></section>
 <section id="catalog" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📚 Catálogo ampliable</div><div class="muted">El catálogo es independiente del inventario real.</div><div id="catalogList"></div></section>
 <section id="transfer" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Transferencia de respaldo</div><div class="muted">Pasá máquinas seleccionadas a otro técnico mediante un archivo. Se conservan los datos y el historial; la otra cuenta recibe copias propias y separadas.</div><div class="card"><b>📤 Enviar respaldo</b><label>Filtrar por localidad, provincia, ID o tipo</label><input id="tr_filter" placeholder="Ej.: Resistencia, Chaco, PCH..." oninput="renderTransferList()"><div style="margin:8px 0"><button class="btn" onclick="selectAllTransfer(true)">Seleccionar todas</button> <button class="btn" onclick="selectAllTransfer(false)">Limpiar selección</button></div><div id="transferList"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="exportTransfer()">📤 Generar transferencia</button></div><div class="card"><b>📥 Recibir respaldo</b><div class="muted">Elegí el archivo que te envió otro técnico. Antes de guardar, la app te mostrará cuántas máquinas e historiales contiene.</div><input id="transferFile" type="file" accept="application/json,.json" onchange="previewTransfer(event)"><div id="transferPreview" style="margin-top:8px"></div></div></section>
-<section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta. <b>Antes de hacerlo, transferí las máquinas que correspondan.</b></p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros de inventario e historiales quedan conservados en la base central para mantener la trazabilidad de la empresa y no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
+<section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #bfdbfe"><div class="title">👥 Equipo compartido</div><div class="muted">Cuando dos cuentas pertenecen al mismo equipo, trabajan sobre la misma base: si uno modifica una máquina, el otro verá el cambio al sincronizar. El historial también queda compartido.</div><div id="teamStatus" style="margin-top:10px"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="createTeam()">➕ Crear equipo y compartir mi inventario</button><button class="btn" style="width:100%;margin-top:8px" onclick="joinTeam()">🔗 Unirme con código de equipo</button></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta.</p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros compartidos no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
 <section id="detail" class="hidden"></section>
 </main>
 <nav class="bottom"><button onclick="show('home')">🏠<br>Inicio</button><button onclick="show('search')">🔎<br>Buscar</button><button onclick="show('obs')">📝<br>Obs.</button><button onclick="show('moves')">🔄<br>Mov.</button></nav>
@@ -72,7 +72,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs, doc, setDoc, addDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+import { getFirestore, collection, query, where, getDocs, getDoc, doc, setDoc, addDoc, updateDoc, writeBatch, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8QRsOvK1taD45Zo6xOAolfUnAn8l0_Lg",
@@ -87,6 +87,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentUser=null, machines=[], observations=[], maintenance=[], movements=[], catalog=[];
+let userProfile=null, currentTeamId=null, syncUnsubs=[];
 let authMode="login";
 
 const WAWA_TASKS=["Limpieza","Ajuste de tornillos del plato","Instalación de relé","Desinstalación de relé","Cambio de billetero","Cambio de fuente","Cambio de placa madre"];
@@ -154,16 +155,95 @@ window.deleteMyAccount=async()=>{
   if(!ok)return;
   if(!(await reauth()))return;
   const confirm2=prompt("Para confirmar, escribí ELIMINAR CUENTA");
-  if(confirm2!=="ELIMINAR CUENTA"){toast("Cancelado. La cuenta sigue activa.");return}
+  const confirmText=String(confirm2??"").trim().replace(/\s+/g," ").toUpperCase();
+  if(confirmText!=="ELIMINAR CUENTA"){toast("Cancelado. La cuenta sigue activa.");return}
   setBusy("Eliminando acceso de la cuenta…");
   try{await deleteUser(currentUser);toast("Cuenta eliminada. Ya no podrás iniciar sesión con este acceso.");}
   catch(e){if(e.code==="auth/requires-recent-login")toast("Por seguridad, volvé a iniciar sesión y repetí la eliminación.");else toast("No se pudo eliminar la cuenta: "+(e.message||e));}
   finally{setBusy("")}
 };
 
+async function loadUserProfile(){
+  const snap=await getDoc(doc(db,"users",currentUser.uid));
+  userProfile=snap.exists()?snap.data():{};
+  currentTeamId=userProfile.teamId||null;
+}
 async function loadCollection(name){
-  const q=query(collection(db,name),where("ownerUid","==",currentUser.uid));
+  const q=currentTeamId
+    ? query(collection(db,name),where("teamId","==",currentTeamId))
+    : query(collection(db,name),where("ownerUid","==",currentUser.uid));
   const snap=await getDocs(q); return snap.docs.map(d=>({docId:d.id,...d.data()}));
+}
+function updateTeamStatus(){
+  const el=$("teamStatus"); if(!el)return;
+  if(currentTeamId) el.innerHTML='<div class="card" style="background:#ecfdf5"><b>🟢 Equipo activo</b><br><span class="muted">Código: '+esc(currentTeamId)+'</span><br><span class="muted">Todos los miembros autorizados trabajan sobre la misma base.</span></div>';
+  else el.innerHTML='<div class="muted">Actualmente estás trabajando con tu base personal.</div>';
+}
+async function createTeam(){
+  if(currentTeamId)return toast("Ya pertenecés a un equipo. Código: "+currentTeamId);
+  if(!(await reauth()))return;
+  const name=(prompt("Nombre del equipo:","Inventario compartido")||"").trim()||"Inventario compartido";
+  const teamId="EQ-"+Math.random().toString(36).slice(2,8).toUpperCase();
+  setBusy("Creando equipo y sincronizando tu inventario…");
+  try{
+    await setDoc(doc(db,"teams",teamId),{nombre:name,ownerUid:currentUser.uid,creadoEn:serverTimestamp()});
+    await setDoc(doc(db,"users",currentUser.uid),{ownerUid:currentUser.uid,nombre:currentUser.displayName||"",email:currentUser.email||"",teamId,role:"owner"},{merge:true});
+    const collections={machines,observations,maintenance,movements,catalog};
+    for(const [name,list] of Object.entries(collections)){
+      const batch=writeBatch(db); let n=0;
+      for(const item of list){const did=item.docId || (name==="machines" ? item.rid : null); if(!did)continue; batch.update(doc(db,name,did),{teamId}); n++; if(n===450){await batch.commit(); n=0;}}
+      if(n)await batch.commit();
+    }
+    currentTeamId=teamId; userProfile={...(userProfile||{}),teamId,role:"owner"};
+    startRealtimeSync();
+    updateTeamStatus(); home();
+    alert("Equipo creado. Compartí este código con tu supervisor:
+
+"+teamId+"
+
+Cuando él lo ingrese en su cuenta, ambos verán y podrán modificar el mismo inventario.");
+  }catch(e){toast("No se pudo crear el equipo: "+(e.message||e))}finally{setBusy("")}
+}
+window.createTeam=createTeam;
+async function joinTeam(){
+  if(currentTeamId)return toast("Ya pertenecés a un equipo. Código: "+currentTeamId);
+  const code=(prompt("Pegá el código que te dio el responsable del inventario:")||"").trim().toUpperCase();
+  if(!/^EQ-[A-Z0-9]{6}$/.test(code))return toast("El código no tiene un formato válido.");
+  setBusy("Verificando equipo…");
+  try{
+    const team=await getDoc(doc(db,"teams",code));
+    if(!team.exists())return toast("No encontré ese equipo. Revisá el código.");
+    const data=team.data();
+    await setDoc(doc(db,"users",currentUser.uid),{ownerUid:currentUser.uid,nombre:currentUser.displayName||"",email:currentUser.email||"",teamId:code,role:"member"},{merge:true});
+    currentTeamId=code; userProfile={...(userProfile||{}),teamId:code,role:"member"};
+    await loadCloud();
+    updateTeamStatus();
+    toast("Te uniste al equipo "+(data.nombre||code)+". Ahora ambos comparten el mismo inventario.");
+  }catch(e){toast("No se pudo unir al equipo: "+(e.message||e))}finally{setBusy("")}
+}
+window.joinTeam=joinTeam
+function stopRealtimeSync(){syncUnsubs.forEach(fn=>{try{fn()}catch{}});syncUnsubs=[];}
+function applyRealtime(name,snap){
+  const rows=snap.docs.map(d=>({docId:d.id,...d.data()}));
+  if(name==="machines") machines=rows.map(m=>({rid:m.rid||m.docId,...m}));
+  else if(name==="observations") observations=rows;
+  else if(name==="maintenance") maintenance=rows;
+  else if(name==="movements") movements=rows;
+  else if(name==="catalog") catalog=rows;
+  if($("app") && !$('app').classList.contains('hidden')){
+    const active=document.querySelector('main>section:not(.hidden)')?.id;
+    if(active==="home") home();
+    if(active==="search") renderSearch();
+    if(active==="bajas") renderBajas();
+  }
+}
+function startRealtimeSync(){
+  stopRealtimeSync();
+  const names=["machines","observations","maintenance","movements","catalog"];
+  names.forEach(name=>{
+    const q=currentTeamId?query(collection(db,name),where("teamId","==",currentTeamId)):query(collection(db,name),where("ownerUid","==",currentUser.uid));
+    syncUnsubs.push(onSnapshot(q,snap=>applyRealtime(name,snap),err=>console.error("sync",name,err)));
+  });
 }
 function renderEmptyCloud(){
   const box=$("importBox");
@@ -177,12 +257,13 @@ async function loadCloud(){
       loadCollection("machines"),loadCollection("observations"),loadCollection("maintenance"),loadCollection("movements"),loadCollection("catalog")
     ]);
     machines=machines.map(m=>({rid:m.rid||m.docId,...m}));
+    startRealtimeSync();
     if(!machines.length){show("emptyCloud");renderEmptyCloud();return}
     show("home"); home();
   }catch(err){console.error(err);toast("No pude cargar tu base: "+(err.message||err))}finally{setBusy("")}
 }
-async function saveDoc(name,id,data){await setDoc(doc(db,name,id),{...data,ownerUid:currentUser.uid})}
-async function addDocCloud(name,data){const ref=await addDoc(collection(db,name),{...data,ownerUid:currentUser.uid});return ref.id}
+async function saveDoc(name,id,data){await setDoc(doc(db,name,id),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{})})}
+async function addDocCloud(name,data){const ref=await addDoc(collection(db,name),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{})});return ref.id}
 
 function show(id){
   document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));
@@ -379,7 +460,7 @@ window.backup=backup;
 onAuthStateChanged(auth,async user=>{
   currentUser=user;
   $("auth").classList.toggle("hidden",!!user);$("app").classList.toggle("hidden",!user);
-  if(user){$("accountEmail").textContent=user.email||"";await loadCloud();} else renderAuth();
+  if(user){$("accountEmail").textContent=user.email||"";await loadUserProfile();await loadCloud();updateTeamStatus();} else {stopRealtimeSync();currentTeamId=null;userProfile=null;renderAuth();}
 });
 renderAuth();
 </script>
