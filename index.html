@@ -21,13 +21,13 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
   <div class="authCard">
     <div class="title" id="authTitle">Iniciar sesión</div>
     <div class="muted">Entrá con tu cuenta. Podés trabajar con tu inventario propio o con un equipo compartido.</div>
-    <form onsubmit="authSubmit(event)">
+    <form id="authForm">
       <div id="nameWrap" class="hidden"><label>Nombre del técnico</label><input id="authName" autocomplete="name"></div>
       <label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="username" required>
       <label>Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
       <button id="authAction" class="btn primary" style="width:100%">Entrar</button>
     </form>
-    <button id="authSwitch" class="btn" style="width:100%;margin-top:8px" onclick="toggleAuth()">¿Es tu primera vez? Crear cuenta</button>
+    <button type="button" id="authSwitch" class="btn" style="width:100%;margin-top:8px">¿Es tu primera vez? Crear cuenta</button>
     <button type="button" id="forgotBtn" class="btn" style="width:100%;margin-top:8px">🔑 ¿Olvidaste tu contraseña?</button>
     <div id="authMsg" class="error"></div><div id="busy" class="busy hidden"></div>
   </div>
@@ -69,10 +69,33 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <nav class="bottom"><button onclick="show('home')">🏠<br>Inicio</button><button onclick="show('search')">🔎<br>Buscar</button><button onclick="show('obs')">📝<br>Obs.</button><button onclick="show('moves')">🔄<br>Mov.</button></nav>
 </div>
 
+<script>
+window.addEventListener("error",function(ev){
+  const msg=document.getElementById("authMsg");
+  if(msg && !window.__appBooted){
+    msg.textContent="No se pudo iniciar la app. Recargá la página e intentá nuevamente.";
+    msg.style.color="#b91c1c";
+    console.error("Error de arranque:",ev.error||ev.message);
+  }
+});
+window.addEventListener("unhandledrejection",function(ev){
+  const msg=document.getElementById("authMsg");
+  if(msg && !window.__appBooted){
+    msg.textContent="No se pudo conectar con los servicios de la app. Recargá la página e intentá nuevamente.";
+    msg.style.color="#b91c1c";
+    console.error("Promesa rechazada al iniciar:",ev.reason);
+  }
+});
+</script>
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { getFirestore, collection, query, where, getDocs, getDoc, doc, setDoc, addDoc, updateDoc, writeBatch, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+const [firebaseApp, firebaseAuth, firebaseFirestore] = await Promise.all([
+  import("https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js"),
+  import("https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js"),
+  import("https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js")
+]);
+const { initializeApp } = firebaseApp;
+const { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, sendPasswordResetEmail, deleteUser, EmailAuthProvider, reauthenticateWithCredential } = firebaseAuth;
+const { getFirestore, collection, query, where, getDocs, getDoc, doc, setDoc, addDoc, updateDoc, writeBatch, onSnapshot, serverTimestamp } = firebaseFirestore;
 
 const firebaseConfig = {
   apiKey: "AIzaSyB8QRsOvK1taD45Zo6xOAolfUnAn8l0_Lg",
@@ -148,6 +171,11 @@ window.authSubmit=async(e)=>{
     $("authMsg").textContent=map[err.code]||err.message||"No se pudo completar la operación.";
   }finally{setBusy("")}
 };
+$("authForm").addEventListener("submit",authSubmit);
+$("authSwitch").addEventListener("click",()=>window.toggleAuth());
+$("authAction").type="submit";
+window.__authHandlerReady=true;
+
 window.logout=async()=>{if(confirm("¿Cerrar sesión?"))await signOut(auth)};
 window.deleteMyAccount=async()=>{
   if(!currentUser)return;
@@ -197,11 +225,7 @@ async function createTeam(){
     currentTeamId=teamId; userProfile={...(userProfile||{}),teamId,role:"owner"};
     startRealtimeSync();
     updateTeamStatus(); home();
-    alert("Equipo creado. Compartí este código con tu supervisor:
-
-"+teamId+"
-
-Cuando él lo ingrese en su cuenta, ambos verán y podrán modificar el mismo inventario.");
+    alert("Equipo creado. Compartí este código con tu supervisor:\n\n"+teamId+"\n\nCuando él lo ingrese en su cuenta, ambos verán y podrán modificar el mismo inventario.");
   }catch(e){toast("No se pudo crear el equipo: "+(e.message||e))}finally{setBusy("")}
 }
 window.createTeam=createTeam;
@@ -463,5 +487,9 @@ onAuthStateChanged(auth,async user=>{
   if(user){$("accountEmail").textContent=user.email||"";await loadUserProfile();await loadCloud();updateTeamStatus();} else {stopRealtimeSync();currentTeamId=null;userProfile=null;renderAuth();}
 });
 renderAuth();
+window.__appBooted=true;
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(err=>console.warn("Service worker no registrado:",err)));
+}
 </script>
 </body></html>
