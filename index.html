@@ -555,8 +555,9 @@ async function saveStockOrder(){
       return toast("Listado actualizado y versión anterior conservada en el historial.");
     }
     const data={tipo:type,items:list,fecha:fmt(ts),ts,ownerUid:currentUser.uid,teamId:currentTeamId||null,actualizado:ts,estado:"activo",version:1,historialEdiciones:[]};
-    const ref=await addDoc(collection(db,"stockOrders"),data);
-    const id=ref.id;
+    // Generamos el ID nosotros mismos y usamos setDoc para evitar cualquier fallo de addDoc.
+    const id=crypto.randomUUID();
+    await setDoc(doc(db,"stockOrders",id),data);
     stockOrders.push({...data,docId:id});
     state[mode]=[]; renderStockModeList(); renderStockModeHistory();
     toast(mode==="factory"?"Pedido de fábrica guardado.":"Control de viaje guardado.");
