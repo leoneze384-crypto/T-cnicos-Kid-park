@@ -16,7 +16,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
 \n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}.stockList{display:grid;gap:8px;margin-top:12px}.stockEntry{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.stockEntryHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.stockActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.stockHistory{margin-top:16px}.stockHistory .card{margin-bottom:8px}.stockQty{max-width:110px}.stockModeTitle{display:flex;align-items:center;gap:8px}.stockSearchRow{display:flex;gap:8px}.stockSearchRow input{flex:1}.stockHint{font-size:12px;color:#6b7280;margin-top:5px}</style></head><body>
-<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v19.4</div></header>
+<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v19.9</div></header>
 <section id="auth" class="authWrap">
   <div class="authCard">
     <div class="title" id="authTitle">Iniciar sesión</div>
@@ -536,46 +536,88 @@ function removeStockModeItem(i){
 async function saveStockOrder(){
   const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
   const mode=stockMode;
-  const list=(state[mode]||[]).map(x=>({...x}));
+  const list=(state[mode]||[]).map(item=>({...item}));
   if(!list.length)return toast("No hay elementos para guardar.");
-  for(const x of list){if(x.nombre==="Billetero"&&(!x.modelo||!x.configuracion))return toast("Completá modelo y configuración del Billetero.");}
+  for(const item of list){
+    if(item.nombre==="Billetero"&&(!item.modelo||!item.configuracion)){
+      return toast("Completá modelo y configuración del Billetero.");
+    }
+  }
   const ts=Date.now();
   const type=mode==="factory"?"pedido_fabrica":"control_viaje";
   try{
-    if(!currentUser || !currentUser.uid) return toast("La sesión todavía no está lista. Cerrá y volvé a entrar.");
+    if(!currentUser?.uid)return toast("La sesión todavía no está lista. Cerrá y volvé a entrar.");
+
     if(stockOrderEditingId){
       const editingId=stockOrderEditingId;
-      const existing=stockOrders.find(x=>x.docId===editingId);
-      if(!existing)return toast("El listado que estabas editando ya no existe.");
-      const previous={items:(existing.items||[]).map(x=>({...x})),actualizado:existing.actualizado||existing.ts||ts};
-      const historial=[...(existing.historialEdiciones||[]),previous];
-      await updateDoc(doc(db,"stockOrders",editingId),{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial,estado:existing.estado||"activo"});
-      Object.assign(existing,{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial});
-      stockOrderEditingId=null; state[mode]=[]; renderStockModeList(); renderStockModeHistory();
+      const existingOrder=stockOrders.find(item=>item.docId===editingId);
+      if(!existingOrder)return toast("El listado que estabas editando ya no existe.");
+      const previousVersion={
+        items:(existingOrder.items||[]).map(item=>({...item})),
+        actualizado:existingOrder.actualizado||existingOrder.ts||ts
+      };
+      const versionHistory=[...(existingOrder.historialEdiciones||[]),previousVersion];
+      await updateDoc(doc(db,"stockOrders",editingId),{
+        items:list,
+        actualizado:ts,
+        version:Number(existingOrder.version||1)+1,
+        historialEdiciones:versionHistory,
+        estado:existingOrder.estado||"activo"
+      });
+      Object.assign(existingOrder,{
+        items:list,
+        actualizado:ts,
+        version:Number(existingOrder.version||1)+1,
+        historialEdiciones:versionHistory
+      });
+      stockOrderEditingId=null;
+      state[mode]=[];
+      try{renderStockModeList();renderStockModeHistory();}catch(renderError){console.error("Render después de editar:",renderError);}
       return toast("Listado actualizado y versión anterior conservada en el historial.");
     }
-    const data={tipo:type,items:list,fecha:fmt(ts),ts,ownerUid:currentUser.uid,teamId:currentTeamId||null,actualizado:ts,estado:"activo",version:1,historialEdiciones:[]};
-    // Generamos el ID nosotros mismos y usamos setDoc para evitar cualquier fallo de addDoc.
-    const id=crypto.randomUUID();
-    await setDoc(doc(db,"stockOrders",id),data);
-    stockOrders.push({...data,docId:id});
-    state[mode]=[]; renderStockModeList(); renderStockModeHistory();
-    toast(mode==="factory"?"Pedido de fábrica guardado.":"Control de viaje guardado.");
-  }catch(e){
-    console.error("saveStockOrder",e);
-    toast("No se pudo guardar el listado: "+(e?.message||String(e)));
+
+    const data={
+      tipo:type,
+      items:list,
+      fecha:fmt(ts),
+      ts,
+      ownerUid:currentUser.uid,
+      teamId:currentTeamId||null,
+      actualizado:ts,
+      estado:"activo",
+      version:1,
+      historialEdiciones:[]
+    };
+
+    // Firebase genera un ID válido sin depender de crypto.randomUUID().
+    const orderId="order_"+Date.now()+"_"+Math.random().toString(36).slice(2,10);
+    await setDoc(doc(db,"stockOrders",orderId),data);
+
+    stockOrders.push({...data,docId:orderId});
+    state[mode]=[];
+    try{renderStockModeList();renderStockModeHistory();}catch(renderError){console.error("Render después de guardar:",renderError);}
+    return toast(mode==="factory"?"Pedido de fábrica guardado correctamente.":"Control de viaje guardado correctamente.");
+  }catch(error){
+    console.error("saveStockOrder error:",error);
+    const message=error&&error.message?error.message:String(error);
+    toast("No se pudo guardar el listado: "+message);
   }
 }
 function renderStockModeHistory(){
-  const box=$("stockModeHistory"); if(!box)return;
+  const box=$("stockModeHistory");
+  if(!box)return;
   const type=stockMode==="factory"?"pedido_fabrica":"control_viaje";
-  const active=stockOrders.filter(x=>x.tipo===type&&x.estado!=="eliminado").sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
-  const archived=stockOrders.filter(x=>x.tipo===type&&x.estado==="eliminado").sort((a,b)=>Number(b.eliminadoAt||0)-Number(a.eliminadoAt||0));
-  const card=o=>`<div class="card"><b>${type==="pedido_fabrica"?"🏭 Pedido de fábrica":"🚐 Control de viaje"} — ${esc(o.fecha||"")}</b><div class="muted">${(o.items||[]).length} elementos · versión ${Number(o.version||1)}</div><div style="margin-top:8px">${(o.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div><div class="stockActions"><button class="btn" onclick="editStockOrder('${esc(o.docId||"")}')">✏️ Editar</button><button class="btn" type="button" style="color:#991b1b;border:1px solid #fecaca;background:#fff" onclick="deleteStockOrder('${esc(o.docId||"")}')">🗑️ ELIMINAR LISTADO</button></div></div>`;
-  const hist=archived.length?archived.map(o=>`<div class="card"><b>🗃️ ${type==="pedido_fabrica"?"Pedido de fábrica":"Control de viaje"} — ${esc(o.fecha||"")}</b><div class="muted">Eliminado: ${esc(o.eliminadoFecha||"")} · versión ${Number(o.version||1)}</div><div style="margin-top:8px">${(o.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div><div class="muted" style="margin-top:8px">Este listado permanece conservado en el historial.</div></div>`).join(""):'<div class="muted">No hay listados eliminados.</div>';
-  const versionHistory=(o.historialEdiciones||[]).length ? `<div class="card" style="margin-top:8px"><b>🕘 Historial de versiones</b>${(o.historialEdiciones||[]).slice().reverse().map((v,i)=>`<div class="item" style="margin-top:6px"><span class="muted">Versión anterior ${i+1} · ${esc(v.actualizado?fmt(v.actualizado):"fecha no disponible")}</span><div>${(v.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div></div>`).join("")}</div>` : "";
-  const activeHtml=active.length?active.map(o=>card(o)+versionHistory(o)).join(""):'<div class="muted">Todavía no hay listados guardados.</div>';
-  box.innerHTML=`<div class="title">📋 Listados guardados</div>${activeHtml}<div class="card" style="margin-top:12px"><div class="title">🗃️ Historial de listados eliminados (${archived.length})</div>${hist}</div>`;
+  const activeOrders=stockOrders.filter(order=>order.tipo===type&&order.estado!=="eliminado").sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
+  const archivedOrders=stockOrders.filter(order=>order.tipo===type&&order.estado==="eliminado").sort((a,b)=>Number(b.eliminadoAt||0)-Number(a.eliminadoAt||0));
+  const orderCard=(order)=>`<div class="card"><b>${type==="pedido_fabrica"?"🏭 Pedido de fábrica":"🚐 Control de viaje"} — ${esc(order.fecha||"")}</b><div class="muted">${(order.items||[]).length} elementos · versión ${Number(order.version||1)}</div><div style="margin-top:8px">${(order.items||[]).map(item=>`<span class="tag" style="margin:2px">${esc(item.nombre)} × ${Number(item.cantidad||0)}${item.modelo?` · ${esc(item.modelo)}`:""}${item.configuracion?` · ${esc(item.configuracion)}`:""}</span>`).join("")}</div><div class="stockActions"><button class="btn" onclick="editStockOrder('${esc(order.docId||"")}')">✏️ Editar</button><button class="btn" type="button" style="color:#991b1b;border:1px solid #fecaca;background:#fff" onclick="deleteStockOrder('${esc(order.docId||"")}')">🗑️ ELIMINAR LISTADO</button></div></div>`;
+  const deletedHtml=archivedOrders.length?archivedOrders.map(order=>`<div class="card"><b>🗃️ ${type==="pedido_fabrica"?"Pedido de fábrica":"Control de viaje"} — ${esc(order.fecha||"")}</b><div class="muted">Eliminado: ${esc(order.eliminadoFecha||"")} · versión ${Number(order.version||1)}</div><div style="margin-top:8px">${(order.items||[]).map(item=>`<span class="tag" style="margin:2px">${esc(item.nombre)} × ${Number(item.cantidad||0)}${item.modelo?` · ${esc(item.modelo)}`:""}${item.configuracion?` · ${esc(item.configuracion)}`:""}</span>`).join("")}</div><div class="muted" style="margin-top:8px">Este listado permanece conservado en el historial.</div></div>`).join(""):"<div class=\"muted\">No hay listados eliminados.</div>";
+  const versionHtml=(order)=>{
+    const versions=order.historialEdiciones||[];
+    if(!versions.length)return "";
+    return `<div class="card" style="margin-top:8px"><b>🕘 Historial de versiones</b>${versions.slice().reverse().map((version,index)=>`<div class="item" style="margin-top:6px"><span class="muted">Versión anterior ${index+1} · ${esc(version.actualizado?fmt(version.actualizado):"fecha no disponible")}</span><div>${(version.items||[]).map(item=>`<span class="tag" style="margin:2px">${esc(item.nombre)} × ${Number(item.cantidad||0)}${item.modelo?` · ${esc(item.modelo)}`:""}${item.configuracion?` · ${esc(item.configuracion)}`:""}</span>`).join("")}</div></div>`).join("")}</div>`;
+  };
+  const activeHtml=activeOrders.length?activeOrders.map(order=>orderCard(order)+versionHtml(order)).join(""):"<div class=\"muted\">Todavía no hay listados guardados.</div>";
+  box.innerHTML=`<div class="title">📋 Listados guardados</div>${activeHtml}<div class="card" style="margin-top:12px"><div class="title">🗃️ Historial de listados eliminados (${archivedOrders.length})</div>${deletedHtml}</div>`;
 }
 function editStockOrder(id){
   const o=stockOrders.find(x=>x.docId===id); if(!o||o.estado==="eliminado")return;
@@ -919,7 +961,7 @@ onAuthStateChanged(auth,async user=>{
 renderAuth();
 window.__appBooted=true;
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(err=>console.warn("Service worker no registrado:",err)));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=19.9").catch(err=>console.warn("Service worker no registrado:",err)));
 }
 </script>
 </body></html>
