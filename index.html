@@ -456,17 +456,19 @@ async function saveVisit(rid){
 window.openVisit=openVisit;window.saveVisit=saveVisit;
 function renderZones(){const list=machines.filter(m=>m.estado!=="Baja");const visited=list.filter(m=>visitFor(m.rid)),pending=list.filter(m=>!visitFor(m.rid));const card=(title,arr,empty)=>`<div class="card"><div class="title">${title} (${arr.length})</div>${arr.length?arr.map(m=>`<div class="item"><b>${esc(m.id)}</b> · ${esc(m.tipo)}<br>${esc(m.zona||m.provincia||"")}<br><span class="tag">${visitFor(m.rid)?`Visitada · ${visitFor(m.rid).porcentaje||0}%`:"Sin visitar"}</span><button class="btn" style="width:100%;margin-top:8px" onclick="detail('${m.rid}')">Ver máquina</button></div>`).join(""): `<div class="muted">${empty}</div>`}</div>`;$("zoneVisitList").innerHTML=card("🟢 Máquinas visitadas",visited,"Todavía no hay máquinas visitadas.")+card("⚪ Máquinas sin visitar",pending,"Todas las máquinas fueron visitadas.");}
 
-const STOCK_FACTORY_NAMES=[...new Set(Object.values(FACTORY_PARTS).flat())].sort((a,b)=>a.localeCompare(b,'es'));
+const STOCK_FACTORY_NAMES=[...new Set([...Object.values(FACTORY_PARTS).flat(),"Billetero"])].sort((a,b)=>a.localeCompare(b,'es'));
 const STOCK_GENERAL_NAMES=[...new Set(GENERAL_PARTS)].sort((a,b)=>a.localeCompare(b,'es'));
 const STOCK_TOOLS=["Multímetro","Destornilladores","Pinzas","Alicates","Tester","Cinta aisladora"];
 const STOCK_CLEANING=["Trapos","Alcohol","Limpiador","Pincel","Guantes"];
 let stockMode="factory";
+let stockOrderEditingId=null;
 
 function openStockMode(mode){
   stockMode=mode;
   renderStockHome();
 }
 function renderStockHome(){
+  stockOrderEditingId=stockOrderEditingId||null;
   if(!canUseStock()) return toast("No tenés permisos para modificar stock.");
   const title=stockMode==="factory"?"🏭 Pedido de fábrica":"🚐 Control de viaje";
   const back=`<button class="btn" onclick="show('home');document.getElementById('stockPanel').innerHTML=''">← Inicio</button>`;
@@ -516,8 +518,8 @@ function renderStockModeList(){
   if(!list.length){box.innerHTML='<div class="muted" style="padding:12px 0">Todavía no agregaste elementos.</div>';return}
   box.innerHTML=list.map((x,i)=>{
     const bill=x.nombre==="Billetero";
-    return `<div class="stockEntry"><div class="stockEntryHead"><b>${esc(x.nombre)}</b><button class="btn" onclick="removeStockModeItem(${i})">🗑️ Quitar</button></div>
-      ${bill?`<div class="grid"><div><label>Modelo</label><select onchange="updateStockDraft(${i},'modelo',this.value)"><option value="">Seleccionar</option>${BILL_MODELS.map(v=>`<option ${x.modelo===v?'selected':''}>${v}</option>`).join("")}</select></div><div><label>Configuración</label><select onchange="updateStockDraft(${i},'configuracion',this.value)"><option value="">Seleccionar</option>${BILL_CONFIGS.map(v=>`<option ${x.configuracion===v?'selected':''}>${v}</option>`).join("")}</select></div></div>`:""}
+    return `<div class="stockEntry"><div class="stockEntryHead"><div><b>${esc(x.nombre)}</b>${bill?'<div class="muted">Completá modelo y configuración antes de guardar.</div>':''}</div><button class="btn" onclick="removeStockModeItem(${i})">🗑️ Quitar</button></div>
+      ${bill?`<div class="grid"><div><label>Modelo de billetero</label><select onchange="updateStockDraft(${i},'modelo',this.value)"><option value="">Seleccionar modelo</option>${BILL_MODELS.map(v=>`<option value="${esc(v)}" ${x.modelo===v?'selected':''}>${esc(v)}</option>`).join("")}</select></div><div><label>Configuración / numeración</label><select onchange="updateStockDraft(${i},'configuracion',this.value)"><option value="">Seleccionar configuración</option>${BILL_CONFIGS.map(v=>`<option value="${esc(v)}" ${x.configuracion===v?'selected':''}>${esc(v)}</option>`).join("")}</select></div></div>`:""}
       <label>Cantidad</label><input class="stockQty" type="number" min="1" value="${Number(x.cantidad||1)}" onchange="updateStockDraft(${i},'cantidad',this.value)">
     </div>`
   }).join("");
@@ -533,33 +535,66 @@ function removeStockModeItem(i){
 }
 async function saveStockOrder(){
   const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
-  const list=state[stockMode]||[];
+  const list=(state[stockMode]||[]).map(x=>({...x}));
   if(!list.length)return toast("No hay elementos para guardar.");
   for(const x of list){if(x.nombre==="Billetero"&&(!x.modelo||!x.configuracion))return toast("Completá modelo y configuración del Billetero.");}
   const ts=Date.now();
-  const data={tipo:stockMode==="factory"?"pedido_fabrica":"control_viaje",items:list.map(x=>({...x})),fecha:fmt(ts),ts,ownerUid:currentUser.uid,teamId:currentTeamId||null,actualizado:ts};
+  const type=stockMode==="factory"?"pedido_fabrica":"control_viaje";
   try{
+    if(stockOrderEditingId){
+      const existing=stockOrders.find(x=>x.docId===stockOrderEditingId);
+      if(!existing)return toast("El listado que estabas editando ya no existe.");
+      const previous={items:(existing.items||[]).map(x=>({...x})),actualizado:existing.actualizado||existing.ts||ts};
+      const historial=[...(existing.historialEdiciones||[]),previous];
+      await updateDoc(doc(db,"stockOrders",stockOrderEditingId),{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial,estado:existing.estado||"activo"});
+      Object.assign(existing,{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial});
+      stockOrderEditingId=null; state[stockMode]=[]; renderStockModeList(); renderStockModeHistory();
+      return toast("Listado actualizado y versión anterior conservada en el historial.");
+    }
+    const data={tipo:type,items:list,fecha:fmt(ts),ts,ownerUid:currentUser.uid,teamId:currentTeamId||null,actualizado:ts,estado:"activo",version:1,historialEdiciones:[]};
     const id=await addDocCloud("stockOrders",data);
     stockOrders.push({...data,docId:id});
-    state[stockMode]=[];
-    renderStockModeList(); renderStockModeHistory();
+    state[stockMode]=[]; renderStockModeList(); renderStockModeHistory();
     toast(stockMode==="factory"?"Pedido de fábrica guardado.":"Control de viaje guardado.");
   }catch(e){toast("No se pudo guardar el listado: "+(e.message||e))}
 }
 function renderStockModeHistory(){
   const box=$("stockModeHistory"); if(!box)return;
   const type=stockMode==="factory"?"pedido_fabrica":"control_viaje";
-  const rows=stockOrders.filter(x=>x.tipo===type).sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
-  box.innerHTML=`<div class="title">📋 Listados guardados</div>${rows.length?rows.map((o,i)=>`<div class="card"><b>${type==="pedido_fabrica"?"🏭 Pedido de fábrica":"🚐 Control de viaje"} — ${esc(o.fecha||"")}</b><div class="muted">${(o.items||[]).length} elementos</div><div style="margin-top:8px">${(o.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div><div class="stockActions"><button class="btn" onclick="editStockOrder('${esc(o.docId||"")}')">✏️ Editar</button><button class="btn" onclick="duplicateStockOrder('${esc(o.docId||"")}')">📋 Cargar para editar</button></div></div>`).join(""):'<div class="muted">Todavía no hay listados guardados.</div>'}`;
+  const active=stockOrders.filter(x=>x.tipo===type&&x.estado!=="eliminado").sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
+  const archived=stockOrders.filter(x=>x.tipo===type&&x.estado==="eliminado").sort((a,b)=>Number(b.eliminadoAt||0)-Number(a.eliminadoAt||0));
+  const card=o=>`<div class="card"><b>${type==="pedido_fabrica"?"🏭 Pedido de fábrica":"🚐 Control de viaje"} — ${esc(o.fecha||"")}</b><div class="muted">${(o.items||[]).length} elementos · versión ${Number(o.version||1)}</div><div style="margin-top:8px">${(o.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div><div class="stockActions"><button class="btn" onclick="editStockOrder('${esc(o.docId||"")}')">✏️ Editar</button><button class="btn" style="color:#991b1b;border:1px solid #fecaca" onclick="deleteStockOrder('${esc(o.docId||"")}')">🗑️ Eliminar listado</button></div></div>`;
+  const hist=archived.length?archived.map(o=>`<div class="card"><b>🗃️ ${type==="pedido_fabrica"?"Pedido de fábrica":"Control de viaje"} — ${esc(o.fecha||"")}</b><div class="muted">Eliminado: ${esc(o.eliminadoFecha||"")} · versión ${Number(o.version||1)}</div><div style="margin-top:8px">${(o.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div><div class="muted" style="margin-top:8px">Este listado permanece conservado en el historial.</div></div>`).join(""):'<div class="muted">No hay listados eliminados.</div>';
+  const versionHistory=(o.historialEdiciones||[]).length ? `<div class="card" style="margin-top:8px"><b>🕘 Historial de versiones</b>${(o.historialEdiciones||[]).slice().reverse().map((v,i)=>`<div class="item" style="margin-top:6px"><span class="muted">Versión anterior ${i+1} · ${esc(v.actualizado?fmt(v.actualizado):"fecha no disponible")}</span><div>${(v.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div></div>`).join("")}</div>` : "";
+  const activeHtml=active.length?active.map(o=>card(o)+versionHistory(o)).join(""):'<div class="muted">Todavía no hay listados guardados.</div>';
+  box.innerHTML=`<div class="title">📋 Listados guardados</div>${activeHtml}<div class="card" style="margin-top:12px"><div class="title">🗃️ Historial de listados eliminados (${archived.length})</div>${hist}</div>`;
 }
 function editStockOrder(id){
+  const o=stockOrders.find(x=>x.docId===id); if(!o||o.estado==="eliminado")return;
+  const mode=o.tipo==="pedido_fabrica"?"factory":"travel";
+  window.__stockDraft=window.__stockDraft||{factory:[],travel:[]};
+  window.__stockDraft[mode]=(o.items||[]).map(x=>({...x}));
+  stockOrderEditingId=id; stockMode=mode; renderStockHome();
+  toast("Editando listado guardado. Al guardar se conservará la versión anterior.");
+}
+function duplicateStockOrder(id){
   const o=stockOrders.find(x=>x.docId===id); if(!o)return;
   const mode=o.tipo==="pedido_fabrica"?"factory":"travel";
   window.__stockDraft=window.__stockDraft||{factory:[],travel:[]};
   window.__stockDraft[mode]=(o.items||[]).map(x=>({...x}));
-  stockMode=mode; renderStockHome();
+  stockOrderEditingId=null; stockMode=mode; renderStockHome();
+  toast("Listado cargado como una copia nueva.");
 }
-function duplicateStockOrder(id){editStockOrder(id);}
+async function deleteStockOrder(id){
+  const o=stockOrders.find(x=>x.docId===id); if(!o||o.estado==="eliminado")return;
+  if(!confirm("¿Eliminar este listado? No se borrará definitivamente: quedará en el historial."))return;
+  const ts=Date.now();
+  try{
+    await updateDoc(doc(db,"stockOrders",id),{estado:"eliminado",eliminadoAt:ts,eliminadoFecha:fmt(ts),eliminadoPor:currentUser.uid});
+    o.estado="eliminado"; o.eliminadoAt=ts; o.eliminadoFecha=fmt(ts); o.eliminadoPor=currentUser.uid;
+    renderStockModeHistory(); toast("Listado eliminado de los activos y conservado en el historial.");
+  }catch(e){toast("No se pudo eliminar el listado: "+(e.message||e))}
+}
 async function loadFactoryIntoTravel(){
   const orders=stockOrders.filter(x=>x.tipo==="pedido_fabrica").sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
   if(!orders.length)return toast("Todavía no hay pedidos de fábrica guardados.");
@@ -576,7 +611,7 @@ async function loadFactoryIntoTravel(){
 window.openStockMode=openStockMode;window.renderStockHome=renderStockHome;window.renderStock=renderStockHome;
 window.addStockModeItem=addStockModeItem;window.chooseStockModeItem=chooseStockModeItem;window.filterStockMode=filterStockMode;
 window.updateStockDraft=updateStockDraft;window.removeStockModeItem=removeStockModeItem;window.saveStockOrder=saveStockOrder;
-window.editStockOrder=editStockOrder;window.duplicateStockOrder=duplicateStockOrder;window.loadFactoryIntoTravel=loadFactoryIntoTravel;
+window.editStockOrder=editStockOrder;window.duplicateStockOrder=duplicateStockOrder;window.deleteStockOrder=deleteStockOrder;window.loadFactoryIntoTravel=loadFactoryIntoTravel;
 
 async function reauth(){
   if(!currentUser)return false;
