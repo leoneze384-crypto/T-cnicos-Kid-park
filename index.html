@@ -16,7 +16,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
 \n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}.stockList{display:grid;gap:8px;margin-top:12px}.stockEntry{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.stockEntryHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.stockActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.stockHistory{margin-top:16px}.stockHistory .card{margin-bottom:8px}.stockQty{max-width:110px}.stockModeTitle{display:flex;align-items:center;gap:8px}.stockSearchRow{display:flex;gap:8px}.stockSearchRow input{flex:1}.stockHint{font-size:12px;color:#6b7280;margin-top:5px}</style></head><body>
-<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v19.9</div></header>
+<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v20.0</div></header>
 <section id="auth" class="authWrap">
   <div class="authCard">
     <div class="title" id="authTitle">Iniciar sesión</div>
@@ -212,6 +212,10 @@ async function loadUserProfile(){
   currentTeamId=userProfile.teamId||null;
 }
 async function loadCollection(name){
+  // approvalRequests es una colección exclusiva de administración.
+  // Un supervisor/técnico/operador no debe intentar leerla porque las reglas
+  // de Firestore la reservan al administrador y eso hacía fallar TODO loadCloud().
+  if(name==="approvalRequests" && !isAdmin()) return [];
   let q;
   if(currentTeamId){
     q=(name==="machines" && userProfile?.role==="tecnico")
@@ -341,6 +345,9 @@ function startRealtimeSync(){
   stopRealtimeSync();
   const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications","stockOrders"];
   names.forEach(name=>{
+    // La solicitud de supervisor solo es legible por el administrador.
+    // No crear un listener para ella en cuentas no administrativas.
+    if(name==="approvalRequests" && !isAdmin()) return;
     const q=currentTeamId
       ? ((name==="machines" && userProfile?.role==="tecnico")
           ? query(collection(db,name),where("teamId","==",currentTeamId),where("assignedUid","==",currentUser.uid))
