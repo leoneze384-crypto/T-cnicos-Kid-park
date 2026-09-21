@@ -22,7 +22,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
     <div class="title" id="authTitle">Iniciar sesión</div>
     <div class="muted">Entrá con tu cuenta. Podés trabajar con tu inventario propio o con un equipo compartido.</div>
     <form id="authForm">
-      <div id="nameWrap" class="hidden"><label>Nombre del técnico</label><input id="authName" autocomplete="name"></div>
+      <div id="nameWrap" class="hidden"><label>Nombre</label><input id="authName" autocomplete="name"><label>Rol solicitado</label><select id="authRole"><option value="tecnico">Técnico</option><option value="operador">Operador</option><option value="supervisor">Supervisor</option></select></div>
       <label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="username" required>
       <label>Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
       <button id="authAction" class="btn primary" style="width:100%">Entrar</button>
@@ -41,11 +41,10 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <button class="card btn green" onclick="show('add')">➕<br>Agregar</button>
 <button class="card btn yellow" onclick="show('obs')">📝<br>Observación</button>
 <button class="card btn" onclick="show('moves')">🔄<br>Movimiento</button>
-<button class="card btn yellow" onclick="show('wawa')">🟡<br>Wawa</button>
-<button class="card btn" onclick="show('pel')">🧸<br>Pelucheras</button>
-<button class="card btn" onclick="show('keys')">🔑<br>Llaveros</button>
-<button class="card btn" onclick="show('bajas')">🗑️<br>Dadas de baja</button>
 <button class="card btn" onclick="show('catalog')">📚<br>Catálogo</button>
+<button class="card btn blue" onclick="show('stock')">📦<br>Control de stock</button>
+<button class="card btn green" onclick="show('zones')">📍<br>Zonas y visitas</button>
+<button class="card btn" onclick="show('bajas')">🗑️<br>Dadas de baja</button>
 <button class="card btn" onclick="backup()">💾<br>Respaldo</button>
 <button class="card btn blue" onclick="show('transfer')">🔄<br>Transferencia de respaldo</button>
 <button id="supervisorBtn" class="card btn" style="background:#ede9fe;color:#5b21b6" onclick="show('supervisor');renderSupervisor()">👨‍💼<br>Panel supervisor</button>
@@ -63,6 +62,9 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <section id="keys" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔑 Mantenimiento Llaveros</div><div id="keyList"></div></section>
 <section id="bajas" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🗑️ Máquinas dadas de baja</div><div class="muted">No se eliminan: quedan conservadas con todo su historial.</div><div id="bajasList"></div></section>
 <section id="catalog" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📚 Catálogo ampliable</div><div class="muted">El catálogo es independiente del inventario real.</div><div id="catalogList"></div></section>
+<section id="zones" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📍 Zonas · visitas</div><div class="muted">Las máquinas se separan entre visitadas y sin visitar. Cada visita conserva sus relojes, placa, stock y trabajo realizado.</div><div id="zoneVisitList"></div></section>
+<section id="stock" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📦 Control de stock</div><div class="grid"><button class="card btn" onclick="renderStock('Herramientas')">🔧<br>Herramientas</button><button class="card btn" onclick="renderStock('Limpieza')">🧽<br>Limpieza</button><button class="card btn" onclick="renderStock('Fábrica')">⚙️<br>Repuestos de fábrica</button><button class="card btn" onclick="renderStock('General')">🔩<br>Repuestos generales</button></div><div id="stockPanel"></div></section>
+<section id="visit" class="hidden"></section>
 <section id="transfer" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Transferencia de respaldo</div><div class="muted">Pasá máquinas seleccionadas a otro técnico mediante un archivo. Se conservan los datos y el historial; la otra cuenta recibe copias propias y separadas.</div><div class="card"><b>📤 Enviar respaldo</b><label>Filtrar por localidad, provincia, ID o tipo</label><input id="tr_filter" placeholder="Ej.: Resistencia, Chaco, PCH..." oninput="renderTransferList()"><div style="margin:8px 0"><button class="btn" onclick="selectAllTransfer(true)">Seleccionar todas</button> <button class="btn" onclick="selectAllTransfer(false)">Limpiar selección</button></div><div id="transferList"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="exportTransfer()">📤 Generar transferencia</button></div><div class="card"><b>📥 Recibir respaldo</b><div class="muted">Elegí el archivo que te envió otro técnico. Antes de guardar, la app te mostrará cuántas máquinas e historiales contiene.</div><input id="transferFile" type="file" accept="application/json,.json" onchange="previewTransfer(event)"><div id="transferPreview" style="margin-top:8px"></div></div></section>
 <section id="supervisor" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">👨‍💼 Panel de supervisión y administración</div><div id="supervisorGuard" class="muted"></div><div id="supervisorPanel"></div></section>
 <section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #bfdbfe"><div class="title">👥 Equipo compartido</div><div class="muted">Cuando las cuentas pertenecen al mismo equipo, trabajan sobre la misma base. Los técnicos ven sus máquinas asignadas y el supervisor puede administrarlas. El historial queda compartido.</div><div id="teamStatus" style="margin-top:10px"></div><button class="btn primary" style="width:100%;margin-top:8px" id="createTeamBtn" onclick="createTeam()">➕ Crear equipo y compartir mi inventario</button><button class="btn" style="width:100%;margin-top:8px" onclick="joinTeam()">🔗 Unirme con código de equipo</button></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta.</p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros compartidos no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
@@ -113,6 +115,15 @@ const db = getFirestore(app);
 
 let currentUser=null, machines=[], observations=[], maintenance=[], movements=[], catalog=[];
 let userProfile=null, currentTeamId=null, syncUnsubs=[];
+let visits=[], stockItems=[], stockMovements=[], approvalRequests=[], notifications=[];
+const FACTORY_PARTS={
+  "Hip Hop Elf":["Sensor","Placa de Loly","Fuente de Loly","Fuente de Luces","Bocha Palanca","Kit Comando Completo","Orrins","Esquineros Superiores","Esquineros Inferiores","Acrilico Led Ploteado Perfil","Tira Led Perfil Lateral","Luces de Techo Plancha Led","Display de Loly","Ploteo Latera Inferior","Ploteo Frente"],
+  "Toy Soldier II":["Sensor","Placa Toy Soldier II","Fuente de Toy Soldier II","Bocha Comando","Kit Comando Completo","Esquinero Inferior","Esquinero Superior","Tira Led Perfil Lateral","Acrílico Perfil Lateral","Luces Led de Techo Tubo","Orugas","Display 7 Segmentos","Ploteo Latera Inferior","Ploteo Frente","Ploteo Lateral Superior"],
+  "Crazy Toy 3":["Placa 7 segmentos","Fuente de Loly","Fuente de luces"]
+};
+const GENERAL_PARTS=["Reloj digital","Reloj mecánico","Billetero","Bobina","Cable Bobina"];
+const BILL_MODELS=["BV20","BV30","JIX ARES","Genius"];
+const BILL_CONFIGS=["1-2-6-36","1-2-10","1-10-14"];
 let authMode="login";
 
 const WAWA_TASKS=["Limpieza","Ajuste de tornillos del plato","Instalación de relé","Desinstalación de relé","Cambio de billetero","Cambio de fuente","Cambio de placa madre"];
@@ -129,7 +140,7 @@ function setBusy(msg){$("busy").textContent=msg||"";$("busy").classList.toggle("
 function toast(msg){alert(msg)}
 
 function renderAuth(){
-  $("authTitle").textContent=authMode==="login"?"Iniciar sesión":"Crear cuenta de técnico";
+  $("authTitle").textContent=authMode==="login"?"Iniciar sesión":"Crear cuenta";
   $("authAction").textContent=authMode==="login"?"Entrar":"Crear cuenta";
   $("nameWrap").classList.toggle("hidden",authMode!=="register");
   $("authSwitch").textContent=authMode==="login"?"¿Es tu primera vez? Crear cuenta":"Ya tengo cuenta · Iniciar sesión";
@@ -156,7 +167,7 @@ window.forgotPassword=forgotPassword;
 $("forgotBtn").addEventListener("click",forgotPassword);
 window.authSubmit=async(e)=>{
   e.preventDefault();
-  const email=$("authEmail").value.trim(), pass=$("authPassword").value, name=$("authName").value.trim();
+  const email=$("authEmail").value.trim(), pass=$("authPassword").value, name=$("authName").value.trim(), requestedRole=$("authRole")?.value||"tecnico";
   if(!email||!pass)return;
   setBusy("Conectando con Firebase…");
   try{
@@ -164,7 +175,9 @@ window.authSubmit=async(e)=>{
       if(!name)throw new Error("Escribí tu nombre.");
       const cred=await createUserWithEmailAndPassword(auth,email,pass);
       await updateProfile(cred.user,{displayName:name});
-      await setDoc(doc(db,"users",cred.user.uid),{ownerUid:cred.user.uid,nombre:name,email,role:"tecnico",teamId:null,creadoEn:serverTimestamp()});
+      const initialRole=requestedRole==="supervisor"?"pendiente_supervisor":requestedRole;
+      await setDoc(doc(db,"users",cred.user.uid),{ownerUid:cred.user.uid,nombre:name,email,role:initialRole,requestedRole,teamId:null,supervisorAprobado:false,creadoEn:serverTimestamp()});
+      if(requestedRole==="supervisor"){await addDoc(collection(db,"approvalRequests"),{uid:cred.user.uid,nombre:name,email,requestedRole:"supervisor",estado:"pendiente",creadoEn:serverTimestamp(),ts:Date.now(),ownerUid:cred.user.uid});}
     }else{
       await signInWithEmailAndPassword(auth,email,pass);
     }
@@ -209,7 +222,9 @@ async function loadCollection(name){
   }
   const snap=await getDocs(q); return snap.docs.map(d=>({docId:d.id,...d.data()}));
 }
-function canManage(){return userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico";}
+function canManage(){return userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico"||userProfile?.role==="admin_general";}
+function isAdmin(){return userProfile?.role==="admin_general"||userProfile?.role==="admin_tecnico";}
+function canUseStock(){return ["admin_general","admin_tecnico","supervisor","tecnico","operador"].includes(userProfile?.role);}
 function updateRoleUI(){
   const can=canManage();
   const b=$("supervisorBtn"); if(b)b.classList.toggle("hidden",!can);
@@ -254,7 +269,7 @@ async function migratePersonalBase(){
   if(!confirm("Esto vinculará al equipo todos los registros personales que pertenecen a tu cuenta y todavía no tienen teamId. No se borrará ningún dato. ¿Continuar?"))return;
   setBusy("Vinculando tu base personal…");
   try{
-    const names=["machines","observations","maintenance","movements","catalog"];
+    const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications"];
     let total=0;
     for(const name of names){
       const snap=await getDocs(query(collection(db,name),where("ownerUid","==",currentUser.uid)));
@@ -324,7 +339,7 @@ function applyRealtime(name,snap){
 }
 function startRealtimeSync(){
   stopRealtimeSync();
-  const names=["machines","observations","maintenance","movements","catalog"];
+  const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications"];
   names.forEach(name=>{
     const q=currentTeamId
       ? ((name==="machines" && userProfile?.role==="tecnico")
@@ -342,8 +357,8 @@ function renderEmptyCloud(){
 async function loadCloud(){
   setBusy("Cargando tu base…");
   try{
-    [machines,observations,maintenance,movements,catalog]=await Promise.all([
-      loadCollection("machines"),loadCollection("observations"),loadCollection("maintenance"),loadCollection("movements"),loadCollection("catalog")
+    [machines,observations,maintenance,movements,catalog,visits,stockItems,stockMovements,approvalRequests,notifications]=await Promise.all([
+      loadCollection("machines"),loadCollection("observations"),loadCollection("maintenance"),loadCollection("movements"),loadCollection("catalog"),loadCollection("visits"),loadCollection("stockItems"),loadCollection("stockMovements"),loadCollection("approvalRequests"),loadCollection("notifications")
     ]);
     machines=machines.map(m=>({rid:m.rid||m.docId,...m}));
     startRealtimeSync();
@@ -365,6 +380,8 @@ function show(id){
   if(id==="keys")module("keys",m=>KEY_TYPES.includes(m.tipo));
   if(id==="bajas")renderBajas();
   if(id==="catalog")renderCatalog();
+  if(id==="zones")renderZones();
+  if(id==="stock")renderStock("General");
   if(id==="transfer")renderTransferList();
 }
 window.show=show;
@@ -390,11 +407,62 @@ function renderSearch(){
 window.renderSearch=renderSearch;
 function detail(rid){
   const m=machine(rid);if(!m)return;
-  const ev=[...observations.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📝 "+esc(x.texto)})),...maintenance.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔧 "+esc(x.tareas)+"<br>"+esc(x.observaciones)})),...movements.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔄 "+esc(x.tipoMovimiento||"")+"<br>"+esc(x.detalle||"")+"<br>"+esc(x.observaciones||"")}))].sort((a,b)=>b.ts-a.ts);
-  $("detail").innerHTML='<button class="btn" onclick="show(\'search\')">← Volver</button><div class="card"><div class="title">'+esc(m.id)+'</div><b>'+esc(m.tipo)+'</b><p>Cliente: '+esc(m.cliente)+'<br>Provincia: '+esc(m.provincia)+'<br>Localidad: '+esc(m.localidad)+'<br>Ubicación: '+esc(m.ubicacion)+'<br>Responsable: '+esc(m.responsable)+'<br>Estado: <b>'+esc(m.estado)+'</b></p><div class="grid"><button class="btn yellow" onclick="editMachine(\''+rid+'\')">✏️ Corregir ID</button><button class="btn" onclick="retireMachine(\''+rid+'\')">🗑️ Dar de baja</button></div></div><div class="title">📚 Historial</div><div class="timeline">'+(ev.length?ev.map(x=>'<div class="item"><div class="muted">'+fmt(x.ts)+'</div>'+x.h+'</div>').join(""):'<div class="muted">Sin registros.</div>')+'</div>';
+  const ev=[...observations.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📝 "+esc(x.texto)})),...maintenance.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔧 "+esc(x.tareas)+"<br>"+esc(x.observaciones)})),...movements.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔄 "+esc(x.tipoMovimiento||"")+"<br>"+esc(x.detalle||"")+"<br>"+esc(x.observaciones||"")})),...visits.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📍 Visita · COIN "+(x.coinDiferencia??"—")+" · WIN "+(x.winDiferencia??"—")+" · MP "+(x.mpDiferencia??"—")+" · Placa "+(x.placa??"—")+" · "+(x.porcentaje??0)+"%<br>"+esc(x.observaciones||"")}))].sort((a,b)=>b.ts-a.ts);
+  $("detail").innerHTML='<button class="btn" onclick="show(\'search\')">← Volver</button><div class="card"><div class="title">'+esc(m.id)+'</div><b>'+esc(m.tipo)+'</b><p>Cliente: '+esc(m.cliente)+'<br>Provincia: '+esc(m.provincia)+'<br>Localidad: '+esc(m.localidad)+'<br>Ubicación: '+esc(m.ubicacion)+'<br>Responsable: '+esc(m.responsable)+'<br>Estado: <b>'+esc(m.estado)+'</b></p><div class="grid"><button class="btn green" onclick="openVisit(\'"+rid+"\')">📍 Registrar visita</button><button class="btn yellow" onclick="editMachine(\'"+rid+"\')">✏️ Corregir ID</button><button class="btn" onclick="retireMachine(\'"+rid+"\')">🗑️ Dar de baja</button></div></div></div><div class="title">📚 Historial</div><div class="timeline">'+(ev.length?ev.map(x=>'<div class="item"><div class="muted">'+fmt(x.ts)+'</div>'+x.h+'</div>').join(""):'<div class="muted">Sin registros.</div>')+'</div>';
   document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));$("detail").classList.remove("hidden");
 }
 window.detail=detail;
+function isPeluchera(m){return /peluch|toy soldier|crazy toy|hip hop elf|angel|joy player|future melody|melody grido/i.test(String(m?.tipo||""));}
+function visitFor(rid){return visits.filter(v=>v.rid===rid).sort((a,b)=>(b.ts||0)-(a.ts||0))[0]}
+function machineVisitState(rid){return visitFor(rid)?"visitada":"sin visitar"}
+function openVisit(rid){
+  const m=machine(rid); if(!m)return;
+  const prev=visitFor(rid)||{};
+  const isPel=isPeluchera(m);
+  const configs=FACTORY_PARTS[m.tipo]||[];
+  const partOptions=configs.map(x=>`<option>${esc(x)}</option>`).join("");
+  const repHtml=configs.length
+    ? `<label>Repuesto de fábrica utilizado</label><select id="vFactoryPart"><option value="">Ninguno</option>${partOptions}</select><label>Cantidad utilizada</label><input id="vFactoryQty" type="number" min="0" step="1" value="0">`
+    : `<div class="muted">No hay repuestos de fábrica cargados para este modelo.</div>`;
+  const stockHtml=isPel
+    ? `<div class="card"><div class="title">🧸 Control de peluches</div><label>Cantidad anterior</label><input id="vStockPrev" type="number" step="1" value="${prev.peluchesAnterior??""}"><label>Peluches en máquina</label><input id="vStockMachine" type="number" step="1" value="${prev.peluchesMaquina??""}"><label>Peluches en depósito</label><input id="vStockDepot" type="number" step="1" value="${prev.peluchesDeposito??""}"><div id="stockControl" class="muted">Completá los datos para controlar el stock contra WIN.</div></div>`
+    : "";
+  $("visit").innerHTML=`<button class="btn" onclick="detail('${rid}')">← Volver</button><div class="title">📍 Visita · ${esc(m.id)}</div>
+  <div class="card"><b>${esc(m.tipo)}</b><br>${esc(m.cliente||"")} · ${esc(m.localidad||"")}<label>Fecha y hora</label><input type="datetime-local" id="vDate" value="${localDateTime()}"><label>Porcentaje de trabajo completado: <span id="vPctLabel">0%</span></label><input id="vPct" type="range" min="0" max="100" value="${Number(prev.porcentaje||0)}" oninput="vPctLabel.textContent=this.value+'%'">
+  <label>🪙 COIN · anterior</label><input id="coinPrev" type="number" step="1" value="${prev.coinActual??""}"><label>🪙 COIN · actual</label><input id="coinNow" type="number" step="1" value=""><div id="coinDiff" class="muted">Diferencia: —</div>
+  <label>🎁 WIN · anterior</label><input id="winPrev" type="number" step="1" value="${prev.winActual??""}"><label>🎁 WIN · actual</label><input id="winNow" type="number" step="1" value=""><div id="winDiff" class="muted">Diferencia: —</div>
+  <label>📱 MP · anterior</label><input id="mpPrev" type="number" step="1" value="${prev.mpActual??""}"><label>📱 MP · actual</label><input id="mpNow" type="number" step="1" value=""><div id="mpDiff" class="muted">Diferencia: —</div>
+  <label>⚙️ Placa · programación</label><input id="vPlaca" type="number" step="1" value="${prev.placa??""}"></div>
+  ${stockHtml}
+  <div class="card"><div class="title">🔧 Mantenimiento y repuestos</div>${repHtml}<label>Observaciones</label><textarea id="vNote"></textarea></div>
+  <button class="btn primary" style="width:100%" onclick="saveVisit('${rid}')">💾 Guardar visita</button>`;
+  document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden")); $("visit").classList.remove("hidden");
+  ["coin","win","mp"].forEach(x=>{[$(x+"Prev"),$(x+"Now")].forEach(e=>e?.addEventListener("input",()=>calcClock(x)));});
+  ["vStockPrev","vStockMachine","vStockDepot","winNow"].forEach(id=>$(id)?.addEventListener("input",calcStockControl));
+  calcClock("coin");calcClock("win");calcClock("mp");calcStockControl();
+}
+function calcClock(type){const a=Number($(type+"Prev")?.value),b=Number($(type+"Now")?.value);const out=$(type+"Diff");if(out)out.textContent=(Number.isFinite(a)&&Number.isFinite(b)&&$(type+"Now").value!=="")?`Diferencia: ${b-a}`:"Diferencia: —"}
+function calcStockControl(){const p=Number($("vStockPrev")?.value),m=Number($("vStockMachine")?.value)||0,d=Number($("vStockDepot")?.value)||0,w=Number($("winNow")?.value),wp=Number($("winPrev")?.value);const out=$("stockControl");if(!out)return;if([p,w,wp].every(Number.isFinite)&&$("winNow").value!==""&&$("winPrev").value!==""){const win=w-wp;const disponible=m+d;const esperado=p-win;out.textContent=`Stock actual: ${disponible}. Stock esperado por WIN: ${esperado}. Diferencia de control: ${disponible-esperado}.`; }else out.textContent="Completá cantidad anterior y WIN anterior/actual para controlar el stock."}
+async function saveVisit(rid){
+ const m=machine(rid); if(!m)return; const ts=Date.parse($("vDate").value)||Date.now();
+ const num=id=>$(id)?.value===""?null:Number($(id).value);
+ const coinPrev=num("coinPrev"),coinActual=num("coinNow"),winPrev=num("winPrev"),winActual=num("winNow"),mpPrev=num("mpPrev"),mpActual=num("mpNow");
+ const data={rid,id:m.id,tipo:m.tipo,ts,fecha:fmt(ts),visitada:true,porcentaje:Number($("vPct").value||0),coinAnterior:coinPrev,coinActual,coinDiferencia:coinPrev!=null&&coinActual!=null?coinActual-coinPrev:null,winAnterior:winPrev,winActual,winDiferencia:winPrev!=null&&winActual!=null?winActual-winPrev:null,mpAnterior:mpPrev,mpActual,mpDiferencia:mpPrev!=null&&mpActual!=null?mpActual-mpPrev:null,placa:num("vPlaca"),peluchesAnterior:num("vStockPrev"),peluchesMaquina:num("vStockMachine"),peluchesDeposito:num("vStockDepot"),observaciones:$("vNote").value.trim(),responsableUid:currentUser.uid,responsableNombre:currentUser.displayName||currentUser.email||""};
+ try{const docId=await addDocCloud("visits",data);visits.push({...data,docId});
+   const part=$("vFactoryPart")?.value, qty=Number($("vFactoryQty")?.value||0); if(part&&qty>0){const st={rid,id:m.id,machineType:m.tipo,part,quantity:qty,visitId:docId,fecha:fmt(ts),tipo:"uso_fabrica"};const sid=await addDocCloud("stockMovements",st);stockMovements.push({...st,docId:sid});}
+   toast("Visita guardada. Los relojes, placa y stock quedaron en el historial.");detail(rid);
+ }catch(e){toast("No se pudo guardar la visita: "+(e.message||e))}
+}
+window.openVisit=openVisit;window.saveVisit=saveVisit;
+function renderZones(){const list=machines.filter(m=>m.estado!=="Baja");const visited=list.filter(m=>visitFor(m.rid)),pending=list.filter(m=>!visitFor(m.rid));const card=(title,arr,empty)=>`<div class="card"><div class="title">${title} (${arr.length})</div>${arr.length?arr.map(m=>`<div class="item"><b>${esc(m.id)}</b> · ${esc(m.tipo)}<br>${esc(m.zona||m.provincia||"")}<br><span class="tag">${visitFor(m.rid)?`Visitada · ${visitFor(m.rid).porcentaje||0}%`:"Sin visitar"}</span><button class="btn" style="width:100%;margin-top:8px" onclick="detail('${m.rid}')">Ver máquina</button></div>`).join(""): `<div class="muted">${empty}</div>`}</div>`;$("zoneVisitList").innerHTML=card("🟢 Máquinas visitadas",visited,"Todavía no hay máquinas visitadas.")+card("⚪ Máquinas sin visitar",pending,"Todas las máquinas fueron visitadas.");}
+async function ensureGeneralStock(){const existing=new Set(stockItems.filter(x=>x.categoria==="General").map(x=>x.nombre));for(const nombre of GENERAL_PARTS){if(!existing.has(nombre)){const data={nombre,categoria:"General",stock:0,minimo:0,creado:Date.now()};const id=await addDocCloud("stockItems",data);stockItems.push({...data,docId:id});}}}
+function renderStock(kind){if(!canUseStock())return toast("No tenés permisos para modificar stock.");const draw=()=>{let items=stockItems.filter(x=>x.categoria===kind);if(kind==="Fábrica")items=[...new Set(Object.values(FACTORY_PARTS).flat())].map(nombre=>({nombre,categoria:kind,compatible:Object.entries(FACTORY_PARTS).filter(([,v])=>v.includes(nombre)).map(([k])=>k).join(", ")}));$("stockPanel").innerHTML=`<div class="card"><div class="title">${esc(kind)}</div><label>🔎 Buscar repuesto y agregar</label><input id="stockSearch" list="stockChoices" placeholder="Escribí o elegí un elemento" onchange="selectStockToAdd('${kind}')"><datalist id="stockChoices">${[...new Set([...items.map(x=>x.nombre),...GENERAL_PARTS])].map(x=>`<option value="${esc(x)}">`).join("")}</datalist><div id="stockRows">${items.map(x=>stockRow(x,kind)).join("")}</div><button class="btn primary" style="width:100%;margin-top:8px" onclick="addStockItem('${kind}')">➕ Agregar elemento nuevo</button></div>`};if(kind==="General")ensureGeneralStock().then(draw);else draw();}
+function stockRow(x,kind){if(kind==="Fábrica")return `<div class="item"><b>⚙️ ${esc(x.nombre)}</b><br><span class="muted">Compatible: ${esc(x.compatible||"Todos")}</span></div>`;const bill=x.nombre==="Billetero";const key=String(x.docId||x.nombre).replace(/[^a-zA-Z0-9_-]/g,'_');return `<div class="item"><b>${esc(x.nombre||"")}</b>${bill?`<label>Modelo</label><select id="model-${key}"><option value="">Seleccionar</option>${BILL_MODELS.map(v=>`<option ${x.modelo===v?'selected':''}>${v}</option>`).join("")}</select><label>Configuración</label><select id="cfg-${key}"><option value="">Seleccionar</option>${BILL_CONFIGS.map(v=>`<option ${x.configuracion===v?'selected':''}>${v}</option>`).join("")}</select>`:""}<div class="grid3"><div><label>Stock inicial/actual</label><input id="qty-${key}" type="number" value="${Number(x.stock||0)}"></div><div><label>Mínimo</label><input id="min-${key}" type="number" value="${Number(x.minimo||0)}"></div><div><label>Tomado en viaje</label><input id="take-${key}" type="number" value="0"></div></div><div class="grid"><div><label>Usado en viaje</label><input id="use-${key}" type="number" value="0"></div><div><label>Devuelto</label><input id="return-${key}" type="number" value="0"></div></div><span class="tag">${Number(x.stock||0)<=Number(x.minimo||0)?"⚠️ Comprar":"OK"}</span><button class="btn" style="width:100%;margin-top:8px" onclick="saveStockItem('${esc(x.docId||"")}','${esc(x.nombre||"")}','${kind}')">💾 Guardar stock / viaje</button></div>`;}
+function selectStockToAdd(kind){const n=$("stockSearch")?.value?.trim();if(!n)return;if(stockItems.some(x=>x.categoria===kind&&x.nombre.toLowerCase()===n.toLowerCase())){toast("Ese elemento ya está en la lista.");return;}addStockItem(kind,n)}
+async function addStockItem(kind,preset){const nombre=(preset||(prompt("Nombre del elemento:")||"")).trim();if(!nombre)return;const data={nombre,categoria:kind,stock:0,minimo:0,creado:Date.now()};try{const id=await addDocCloud("stockItems",data);stockItems.push({...data,docId:id});renderStock(kind)}catch(e){toast("No se pudo agregar: "+e.message)}}
+async function saveStockItem(docId,nombre,kind){const item=stockItems.find(x=>x.docId===docId)||{nombre,categoria:kind,stock:0,minimo:0};const key=String(docId||nombre).replace(/[^a-zA-Z0-9_-]/g,'_');const stock=Number($("qty-"+key)?.value||0),minimo=Number($("min-"+key)?.value||0),tomado=Number($("take-"+key)?.value||0),usado=Number($("use-"+key)?.value||0),devuelto=Number($("return-"+key)?.value||0),modelo=$("model-"+key)?.value||null,configuracion=$("cfg-"+key)?.value||null;if(tomado<0||usado<0||devuelto<0||usado+devuelto>tomado)return toast("Revisá el viaje: usado + devuelto no puede superar lo tomado.");const data={nombre,categoria:kind,stock:Math.max(0,stock-tomado+devuelto),minimo,modelo,configuracion,ultimoViaje:{tomado,usado,devuelto,fecha:fmt(Date.now())},actualizado:Date.now()};try{if(docId)await updateDoc(doc(db,"stockItems",docId),data);else{const id=await addDocCloud("stockItems",data);data.docId=id;}const idx=stockItems.findIndex(x=>x.docId===docId);if(idx>=0)stockItems[idx]={...stockItems[idx],...data};else stockItems.push(data);if(tomado||usado||devuelto){const mv={categoria:kind,nombre,modelo,configuracion,tomado,usado,devuelto,quantity:usado,tipo:"viaje",fecha:fmt(Date.now()),ts:Date.now()};const id=await addDocCloud("stockMovements",mv);stockMovements.push({...mv,docId:id});}renderStock(kind);toast("Stock actualizado y movimiento de viaje guardado.");}catch(e){toast("No se pudo guardar el stock: "+(e.message||e))}}
+window.renderZones=renderZones;window.renderStock=renderStock;window.saveStockItem=saveStockItem;window.selectStockToAdd=selectStockToAdd;
+
 async function reauth(){
   if(!currentUser)return false;
   const pass=prompt("Por seguridad, ingresá la contraseña de tu cuenta para realizar esta modificación:");
@@ -450,7 +518,7 @@ async function saveMaint(id,rid){const m=machine(rid),ts=Date.parse($("maintDate
 window.saveMaint=saveMaint;
 function renderBajas(){const list=machines.filter(m=>m.estado==="Baja");$("bajasList").innerHTML=list.length?list.map(m=>'<div class="item"><b>'+esc(m.id)+'</b> · '+esc(m.tipo)+'<br>'+esc(m.provincia)+' · '+esc(m.localidad)+' · '+esc(m.ubicacion)+'<br><span class="tag">BAJA</span><button class="btn" style="width:100%;margin-top:8px" onclick="detail(\''+m.rid+'\')">Ver historial</button></div>').join(""):'<div class="muted">No hay máquinas dadas de baja.</div>'}
 function renderCatalog(){
-  const defaults=["Pelucheras","Llaveros","Muñequitos","Peluches grandes","Premios grandes","Multisalas / multijuegos"];
+  const defaults=["Pelucheras","Wawa","Wawa Doble","Llaveros","Solo Cutter","Toy Soldier I","Toy Soldier II","Crazy Toy 3","Hip Hop Elf","Angel","Joy Player","Future Melody","Melody Grido","Free Luck","Future Melody Clip"];
   const all=[...new Set([...defaults,...catalog.map(c=>c.nombre).filter(Boolean)])];
   $("catalogList").innerHTML=all.map(n=>'<div class="item"><b>'+esc(n)+'</b></div>').join("")+ '<button class="btn primary" style="width:100%" onclick="addCatalog()">➕ Agregar categoría/modelo</button>';
 }
@@ -543,6 +611,9 @@ async function importTransfer(){
 }
 window.importTransfer=importTransfer;
 
+async function approveSupervisor(uid,requestId){if(!isAdmin())return toast("Solo el Administrador General puede aprobar supervisores.");try{await updateDoc(doc(db,"users",uid),{role:"supervisor",supervisorAprobado:true,approvedBy:currentUser.uid,approvedEn:serverTimestamp()});if(requestId)await updateDoc(doc(db,"approvalRequests",requestId),{estado:"aprobada",resueltoPor:currentUser.uid,resueltoEn:serverTimestamp()});toast("Supervisor aprobado.");await renderSupervisor();}catch(e){toast("No se pudo aprobar: "+(e.message||e))}}
+async function rejectSupervisor(uid,requestId){if(!isAdmin())return toast("Solo el Administrador General puede rechazar supervisores.");if(!confirm("¿Rechazar esta solicitud de supervisor?"))return;try{await updateDoc(doc(db,"users",uid),{role:"tecnico",supervisorAprobado:false,requestedRole:"supervisor",rechazadoPor:currentUser.uid,rechazadoEn:serverTimestamp()});if(requestId)await updateDoc(doc(db,"approvalRequests",requestId),{estado:"rechazada",resueltoPor:currentUser.uid,resueltoEn:serverTimestamp()});toast("Solicitud rechazada.");await renderSupervisor();}catch(e){toast("No se pudo rechazar: "+(e.message||e))}}
+window.approveSupervisor=approveSupervisor;window.rejectSupervisor=rejectSupervisor;
 async function renderSupervisor(){
   const box=$("supervisorPanel"),guard=$("supervisorGuard"); if(!box||!guard)return;
   const isSup=currentTeamId && (userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico");
@@ -561,8 +632,10 @@ async function renderSupervisor(){
     const sups=users.filter(u=>u.role==="supervisor");
     const assigned=machines.filter(m=>m.teamId===currentTeamId);
     const byUid={}; assigned.forEach(m=>{const uid=m.assignedUid||m.ownerUid; (byUid[uid]??=[]).push(m)});
-    let html='<div class="card"><b>👥 Técnicos</b><div class="muted">'+techs.length+' técnico(s) · '+assigned.length+' máquina(s) en el equipo</div></div>';
-    html+='<div class="card" style="border:1px solid #bfdbfe"><div class="title">📍 Zonas</div><div class="muted">Las zonas registradas por los técnicos quedan visibles para administración.</div>'+(zones.length?zones.map(z=>'<div class="item"><b>'+esc(z.zona||'Sin zona')+'</b><br><span class="muted">👤 '+esc(z.tecnicoNombre||z.tecnicoUid||'Sin técnico')+'</span><button class="btn blue" style="width:100%;margin-top:8px" onclick="assignZone(\''+z.id+'\')">👤 Asignar / cambiar responsable</button><button class="btn" style="width:100%;margin-top:6px;color:#991b1b" onclick="deleteZone(\''+z.id+'\')">🗑️ Eliminar zona</button></div>').join(''):'<div class="muted">Todavía no hay zonas registradas.</div>')+'</div>';
+    let html='';
+    if(isAdmin()){try{const reqSnap=await getDocs(query(collection(db,"approvalRequests"),where("estado","==","pendiente")));const reqs=reqSnap.docs.map(d=>({id:d.id,...d.data()}));html+='<div class="card" style="border:1px solid #f59e0b"><div class="title">⏳ Solicitudes de supervisor</div>'+(reqs.length?reqs.map(r=>'<div class="item"><b>'+esc(r.nombre||r.email)+'</b><br>'+esc(r.email||'')+'<br><button class="btn green" style="width:49%" onclick="approveSupervisor(\''+r.uid+'\',\''+r.id+'\')">✅ Aprobar</button><button class="btn" style="width:49%;color:#991b1b" onclick="rejectSupervisor(\''+r.uid+'\',\''+r.id+'\')">❌ Rechazar</button></div>').join(''):'<div class="muted">No hay solicitudes pendientes.</div>')+'</div>';}catch(e){html+='<div class="card"><div class="muted">No se pudieron cargar las solicitudes de supervisor.</div></div>';}}
+    html+='<div class="card"><b>👥 Técnicos y operadores</b><div class="muted">'+techs.length+' usuario(s) técnicos/operadores · '+assigned.length+' máquina(s) en el equipo</div></div>';
+    html+='<div class="card" style="border:1px solid #bfdbfe"><div class="title">📍 Zonas</div><div class="muted">Las zonas registradas por los técnicos quedan visibles para administración.</div>'+(zones.length?zones.map(z=>'<div class="item"><b>'+esc(z.zona||'Sin zona')+'</b><br><span class="muted">🔧 Técnico: '+esc(z.tecnicoNombre||z.tecnicoUid||'Sin técnico')+'<br>🎧 Operador: '+esc(z.operadorNombre||z.operadorUid||'Sin operador')+'</span><button class="btn blue" style="width:100%;margin-top:8px" onclick="assignZone(\''+z.id+'\')">👤 Asignar / cambiar responsable</button><button class="btn" style="width:100%;margin-top:6px;color:#991b1b" onclick="deleteZone(\''+z.id+'\')">🗑️ Eliminar zona</button></div>').join(''):'<div class="muted">Todavía no hay zonas registradas.</div>')+'</div>';
     if(!techs.length) html+='<div class="card">Todavía no hay técnicos agregados al equipo.</div>';
     techs.forEach(t=>{
       const list=byUid[t.uid]||[]; const zones=[...new Set(list.map(m=>m.zona||m.provincia||"Sin zona").filter(Boolean))];
@@ -579,43 +652,33 @@ async function createZone(){
   const zone=(prompt("Nombre de la nueva zona:")||"").trim(); if(!zone)return;
   const id=currentTeamId+"_"+Math.random().toString(36).slice(2,8).toUpperCase();
   try{
-    await setDoc(doc(db,"zones",id),{teamId:currentTeamId,zona:zone,tecnicoUid:null,tecnicoNombre:"Sin asignar",ownerUid:currentUser.uid,creadoEn:serverTimestamp(),actualizadoEn:serverTimestamp()});
+    await setDoc(doc(db,"zones",id),{teamId:currentTeamId,zona:zone,tecnicoUid:null,tecnicoNombre:"Sin asignar",operadorUid:null,operadorNombre:"Sin asignar",ownerUid:currentUser.uid,creadoEn:serverTimestamp(),actualizadoEn:serverTimestamp()});
     toast("Zona creada: "+zone); renderSupervisor();
   }catch(e){toast("No se pudo crear la zona: "+(e.message||e))}
 }
 window.createZone=createZone;
 async function assignZone(zoneId){
   if(!canManage())return toast("Solo el administrador o supervisor puede asignar zonas.");
-  const zoneSnap=await getDoc(doc(db,"zones",zoneId));
-  if(!zoneSnap.exists())return toast("No encontré esa zona.");
+  const zoneSnap=await getDoc(doc(db,"zones",zoneId));if(!zoneSnap.exists())return toast("No encontré esa zona.");
   const zone={id:zoneSnap.id,...zoneSnap.data()};
-  // Usamos la misma lista de usuarios que ya cargó el panel. Esto evita que
-  // una segunda consulta deje la lista vacía por una diferencia de caché/consulta.
-  let techs=(window.supervisorAssignableUsers||[]).filter(u=>String(u.teamId||"")===String(currentTeamId||"") && (String(u.role||"").toLowerCase()==="tecnico" || String(u.role||"").toLowerCase()==="supervisor"));
-  if(!techs.length){
-    const usersSnap=await getDocs(query(collection(db,"users"),where("teamId","==",currentTeamId)));
-    techs=usersSnap.docs.map(d=>({uid:d.id,...d.data()})).filter(u=>String(u.role||"").toLowerCase()==="tecnico"||String(u.role||"").toLowerCase()==="supervisor");
-  }
+  const usersSnap=await getDocs(query(collection(db,"users"),where("teamId","==",currentTeamId)));
+  const users=usersSnap.docs.map(d=>({uid:d.id,...d.data()}));
+  const techs=users.filter(u=>String(u.role||"").toLowerCase()==="tecnico");
+  const ops=users.filter(u=>String(u.role||"").toLowerCase()==="operador");
   if(!techs.length)return toast("No hay técnicos disponibles en el equipo.");
-  const options=techs.map((t,i)=>(i+1)+" — "+(t.nombre||t.email||t.uid)).join("\n");
-  const answer=prompt("Zona: "+(zone.zona||zone.id)+"\n\nElegí el número del nuevo responsable:\n\n"+options);
-  if(answer===null)return;
-  const idx=Number(answer)-1;
-  const target=techs[idx];
-  if(!target)return toast("Selección inválida.");
-  const targetName=target.nombre||target.email||target.uid;
-  if(!confirm("¿Asignar la zona \""+(zone.zona||zone.id)+"\" a "+targetName+"?"))return;
-  setBusy("Asignando zona…");
-  try{
-    await updateDoc(doc(db,"zones",zoneId),{tecnicoUid:target.uid,tecnicoNombre:targetName,asignadoPor:currentUser.uid,asignadoEn:serverTimestamp(),actualizadoEn:serverTimestamp()});
-    await setDoc(doc(db,"users",target.uid),{zonaId:zoneId,zonaNombre:zone.zona||zone.id},{merge:true});
+  const pick=(arr,label,current)=>{const opts=arr.map((u,i)=>(i+1)+" — "+(u.nombre||u.email||u.uid)).join("\n");const ans=prompt(label+"\n\n"+opts+(current?"\n\nActual: "+current:""));if(ans===null)return null;const u=arr[Number(ans)-1];return u||null};
+  const tech=pick(techs,"Elegí el TÉCNICO de la zona:",zone.tecnicoNombre);if(!tech)return toast("Selección de técnico inválida.");
+  if(!ops.length)return toast("No hay operadores disponibles. Registrá al menos un Operador antes de completar la zona.");
+  const op=pick(ops,"Elegí el OPERADOR de la zona:",zone.operadorNombre);if(!op)return toast("Selección de operador inválida.");
+  const techName=tech.nombre||tech.email||tech.uid,opName=op.nombre||op.email||op.uid;
+  if(!confirm("¿Asignar a la zona "+(zone.zona||zone.id)+"?\n\nTécnico: "+techName+"\nOperador: "+opName))return;
+  setBusy("Asignando responsables…");try{
+    await updateDoc(doc(db,"zones",zoneId),{tecnicoUid:tech.uid,tecnicoNombre:techName,operadorUid:op.uid,operadorNombre:opName,asignadoPor:currentUser.uid,asignadoEn:serverTimestamp(),actualizadoEn:serverTimestamp()});
+    await setDoc(doc(db,"users",tech.uid),{zonaId, zonaNombre:zone.zona||zone.id},{merge:true});
+    await setDoc(doc(db,"users",op.uid),{zonaId, zonaNombre:zone.zona||zone.id},{merge:true});
     const zoneMachines=machines.filter(m=>m.teamId===currentTeamId&&(m.zona||m.provincia||"")===zone.zona);
-    for(const m of zoneMachines){
-      await updateDoc(doc(db,"machines",m.docId||m.rid),{assignedUid:target.uid,assignedNombre:targetName,delegadoPor:currentUser.uid,delegadoEn:serverTimestamp()});
-    }
-    toast("Zona asignada a "+targetName+(zoneMachines.length?" y "+zoneMachines.length+" máquina(s) vinculadas.":"."));
-    await loadCloud();
-    await renderSupervisor();
+    for(const m of zoneMachines)await updateDoc(doc(db,"machines",m.docId||m.rid),{zonaId:zoneId,teamId:currentTeamId,assignedUid:tech.uid,assignedNombre:techName,operadorUid:op.uid,operadorNombre:opName,delegadoPor:currentUser.uid,delegadoEn:serverTimestamp()});
+    toast("Zona asignada correctamente.");await loadCloud();await renderSupervisor();
   }catch(e){toast("No se pudo asignar la zona: "+(e.message||e))}finally{setBusy("")}
 }
 window.assignZone=assignZone;
