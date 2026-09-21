@@ -16,7 +16,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
 \n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}.stockList{display:grid;gap:8px;margin-top:12px}.stockEntry{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.stockEntryHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.stockActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.stockHistory{margin-top:16px}.stockHistory .card{margin-bottom:8px}.stockQty{max-width:110px}.stockModeTitle{display:flex;align-items:center;gap:8px}.stockSearchRow{display:flex;gap:8px}.stockSearchRow input{flex:1}.stockHint{font-size:12px;color:#6b7280;margin-top:5px}</style></head><body>
-<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v20.1</div></header>
+<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v20.2</div></header>
 <section id="auth" class="authWrap">
   <div class="authCard">
     <div class="title" id="authTitle">Iniciar sesión</div>
@@ -239,7 +239,9 @@ async function loadCollection(name){
   return snap.docs.map(d=>({docId:d.id,...d.data()}));
 }
 function isAdmin(){return userProfile?.role==="admin_general"||userProfile?.role==="admin_tecnico";}
-function canUseStock(){return ["admin_general","admin_tecnico","supervisor","tecnico","operador"].includes(userProfile?.role);}
+function isApprovedSupervisor(){return userProfile?.role==="supervisor" && userProfile?.supervisorAprobado===true;}
+function canManage(){return isAdmin() || isApprovedSupervisor();}
+function canUseStock(){return isAdmin() || isApprovedSupervisor() || ["tecnico","operador"].includes(userProfile?.role);}
 function updateRoleUI(){
   const can=canManage();
   const b=$("supervisorBtn"); if(b)b.classList.toggle("hidden",!can);
@@ -839,8 +841,13 @@ async function rejectSupervisor(uid,requestId){if(!isAdmin())return toast("Solo 
 window.approveSupervisor=approveSupervisor;window.rejectSupervisor=rejectSupervisor;
 async function renderSupervisor(){
   const box=$("supervisorPanel"),guard=$("supervisorGuard"); if(!box||!guard)return;
-  const isSup=currentTeamId && (userProfile?.role==="supervisor"||userProfile?.role==="admin_tecnico");
-  if(!isSup){guard.textContent="Esta sección es exclusiva del supervisor.";box.innerHTML="";return}
+  const isSup=isAdmin() || isApprovedSupervisor();
+  if(!isSup){guard.textContent="Esta sección es exclusiva del supervisor aprobado o del administrador.";box.innerHTML="";return}
+  if(!currentTeamId){
+    guard.innerHTML='<span class="tag" style="background:#dcfce7;color:#166534">✅ Supervisor aprobado</span>';
+    box.innerHTML='<div class="card" style="border:1px solid #86efac"><div class="title">👨‍💼 Cuenta de Supervisor habilitada</div><p>La aprobación ya está activa. Para administrar técnicos, zonas y máquinas necesitás vincular esta cuenta a un equipo.</p><div class="muted">Podés crear un equipo nuevo o unirte al equipo que te haya indicado el Administrador General.</div><button class="btn primary" style="width:100%;margin-top:10px" onclick="createTeam()">➕ Crear equipo</button><button class="btn" style="width:100%;margin-top:8px" onclick="joinTeam()">🔗 Unirme con código de equipo</button></div>';
+    return;
+  }
   guard.innerHTML="Equipo: <b>"+esc(currentTeamId)+"</b> · Administrá técnicos, zonas, sectores y delegaciones.";
   setBusy("Cargando técnicos…");
   try{
@@ -984,7 +991,7 @@ onAuthStateChanged(auth,async user=>{
 renderAuth();
 window.__appBooted=true;
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=19.9").catch(err=>console.warn("Service worker no registrado:",err)));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20.2").catch(err=>console.warn("Service worker no registrado:",err)));
 }
 </script>
 </body></html>
