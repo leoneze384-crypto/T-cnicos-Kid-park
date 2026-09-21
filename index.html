@@ -15,7 +15,7 @@ input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-ra
 label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fafb;padding:9px;border-radius:9px;margin:5px 0}.task input{width:auto;margin:2px 0}
 .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
-\n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}</style></head><body>
+\n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}.stockList{display:grid;gap:8px;margin-top:12px}.stockEntry{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.stockEntryHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.stockActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.stockHistory{margin-top:16px}.stockHistory .card{margin-bottom:8px}.stockQty{max-width:110px}.stockModeTitle{display:flex;align-items:center;gap:8px}.stockSearchRow{display:flex;gap:8px}.stockSearchRow input{flex:1}.stockHint{font-size:12px;color:#6b7280;margin-top:5px}</style></head><body>
 <header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo</div></header>
 <section id="auth" class="authWrap">
   <div class="authCard">
@@ -63,7 +63,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 <section id="bajas" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🗑️ Máquinas dadas de baja</div><div class="muted">No se eliminan: quedan conservadas con todo su historial.</div><div id="bajasList"></div></section>
 <section id="catalog" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📚 Catálogo ampliable</div><div class="muted">El catálogo es independiente del inventario real.</div><div id="catalogList"></div></section>
 <section id="zones" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📍 Zonas · visitas</div><div class="muted">Las máquinas se separan entre visitadas y sin visitar. Cada visita conserva sus relojes, placa, stock y trabajo realizado.</div><div id="zoneVisitList"></div></section>
-<section id="stock" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📦 Control de stock</div><div class="grid"><button class="card btn" onclick="renderStock('Herramientas')">🔧<br>Herramientas</button><button class="card btn" onclick="renderStock('Limpieza')">🧽<br>Limpieza</button><button class="card btn" onclick="renderStock('Fábrica')">⚙️<br>Repuestos de fábrica</button><button class="card btn" onclick="renderStock('General')">🔩<br>Repuestos generales</button></div><div id="stockPanel"></div></section>
+<section id="stock" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📦 Control de stock</div><div class="muted">Prepará pedidos de fábrica y armá el control de cada viaje. Los listados quedan guardados y se pueden editar.</div><div id="stockHome" class="grid" style="margin-top:12px"><button class="card btn" style="min-height:130px;font-size:16px" onclick="openStockMode('factory')">🏭<br><b>Pedido de fábrica</b><small class="muted">Pedir repuestos y materiales</small></button><button class="card btn" style="min-height:130px;font-size:16px" onclick="openStockMode('travel')">🚐<br><b>Control de viaje</b><small class="muted">Preparar lo que llevo</small></button></div><div id="stockPanel"></div></section>
 <section id="visit" class="hidden"></section>
 <section id="transfer" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Transferencia de respaldo</div><div class="muted">Pasá máquinas seleccionadas a otro técnico mediante un archivo. Se conservan los datos y el historial; la otra cuenta recibe copias propias y separadas.</div><div class="card"><b>📤 Enviar respaldo</b><label>Filtrar por localidad, provincia, ID o tipo</label><input id="tr_filter" placeholder="Ej.: Resistencia, Chaco, PCH..." oninput="renderTransferList()"><div style="margin:8px 0"><button class="btn" onclick="selectAllTransfer(true)">Seleccionar todas</button> <button class="btn" onclick="selectAllTransfer(false)">Limpiar selección</button></div><div id="transferList"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="exportTransfer()">📤 Generar transferencia</button></div><div class="card"><b>📥 Recibir respaldo</b><div class="muted">Elegí el archivo que te envió otro técnico. Antes de guardar, la app te mostrará cuántas máquinas e historiales contiene.</div><input id="transferFile" type="file" accept="application/json,.json" onchange="previewTransfer(event)"><div id="transferPreview" style="margin-top:8px"></div></div></section>
 <section id="supervisor" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">👨‍💼 Panel de supervisión y administración</div><div id="supervisorGuard" class="muted"></div><div id="supervisorPanel"></div></section>
@@ -115,7 +115,7 @@ const db = getFirestore(app);
 
 let currentUser=null, machines=[], observations=[], maintenance=[], movements=[], catalog=[];
 let userProfile=null, currentTeamId=null, syncUnsubs=[];
-let visits=[], stockItems=[], stockMovements=[], approvalRequests=[], notifications=[];
+let visits=[], stockItems=[], stockMovements=[], approvalRequests=[], notifications=[], stockOrders=[];
 const FACTORY_PARTS={
   "Hip Hop Elf":["Sensor","Placa de Loly","Fuente de Loly","Fuente de Luces","Bocha Palanca","Kit Comando Completo","Orrins","Esquineros Superiores","Esquineros Inferiores","Acrilico Led Ploteado Perfil","Tira Led Perfil Lateral","Luces de Techo Plancha Led","Display de Loly","Ploteo Latera Inferior","Ploteo Frente"],
   "Toy Soldier II":["Sensor","Placa Toy Soldier II","Fuente de Toy Soldier II","Bocha Comando","Kit Comando Completo","Esquinero Inferior","Esquinero Superior","Tira Led Perfil Lateral","Acrílico Perfil Lateral","Luces Led de Techo Tubo","Orugas","Display 7 Segmentos","Ploteo Latera Inferior","Ploteo Frente","Ploteo Lateral Superior"],
@@ -269,7 +269,7 @@ async function migratePersonalBase(){
   if(!confirm("Esto vinculará al equipo todos los registros personales que pertenecen a tu cuenta y todavía no tienen teamId. No se borrará ningún dato. ¿Continuar?"))return;
   setBusy("Vinculando tu base personal…");
   try{
-    const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications"];
+    const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications","stockOrders"];
     let total=0;
     for(const name of names){
       const snap=await getDocs(query(collection(db,name),where("ownerUid","==",currentUser.uid)));
@@ -339,7 +339,7 @@ function applyRealtime(name,snap){
 }
 function startRealtimeSync(){
   stopRealtimeSync();
-  const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications"];
+  const names=["machines","observations","maintenance","movements","catalog","visits","stockItems","stockMovements","approvalRequests","notifications","stockOrders"];
   names.forEach(name=>{
     const q=currentTeamId
       ? ((name==="machines" && userProfile?.role==="tecnico")
@@ -357,8 +357,8 @@ function renderEmptyCloud(){
 async function loadCloud(){
   setBusy("Cargando tu base…");
   try{
-    [machines,observations,maintenance,movements,catalog,visits,stockItems,stockMovements,approvalRequests,notifications]=await Promise.all([
-      loadCollection("machines"),loadCollection("observations"),loadCollection("maintenance"),loadCollection("movements"),loadCollection("catalog"),loadCollection("visits"),loadCollection("stockItems"),loadCollection("stockMovements"),loadCollection("approvalRequests"),loadCollection("notifications")
+    [machines,observations,maintenance,movements,catalog,visits,stockItems,stockMovements,approvalRequests,notifications,stockOrders]=await Promise.all([
+      loadCollection("machines"),loadCollection("observations"),loadCollection("maintenance"),loadCollection("movements"),loadCollection("catalog"),loadCollection("visits"),loadCollection("stockItems"),loadCollection("stockMovements"),loadCollection("approvalRequests"),loadCollection("notifications"),loadCollection("stockOrders")
     ]);
     machines=machines.map(m=>({rid:m.rid||m.docId,...m}));
     startRealtimeSync();
@@ -455,13 +455,128 @@ async function saveVisit(rid){
 }
 window.openVisit=openVisit;window.saveVisit=saveVisit;
 function renderZones(){const list=machines.filter(m=>m.estado!=="Baja");const visited=list.filter(m=>visitFor(m.rid)),pending=list.filter(m=>!visitFor(m.rid));const card=(title,arr,empty)=>`<div class="card"><div class="title">${title} (${arr.length})</div>${arr.length?arr.map(m=>`<div class="item"><b>${esc(m.id)}</b> · ${esc(m.tipo)}<br>${esc(m.zona||m.provincia||"")}<br><span class="tag">${visitFor(m.rid)?`Visitada · ${visitFor(m.rid).porcentaje||0}%`:"Sin visitar"}</span><button class="btn" style="width:100%;margin-top:8px" onclick="detail('${m.rid}')">Ver máquina</button></div>`).join(""): `<div class="muted">${empty}</div>`}</div>`;$("zoneVisitList").innerHTML=card("🟢 Máquinas visitadas",visited,"Todavía no hay máquinas visitadas.")+card("⚪ Máquinas sin visitar",pending,"Todas las máquinas fueron visitadas.");}
-async function ensureGeneralStock(){const existing=new Set(stockItems.filter(x=>x.categoria==="General").map(x=>x.nombre));for(const nombre of GENERAL_PARTS){if(!existing.has(nombre)){const data={nombre,categoria:"General",stock:0,minimo:0,creado:Date.now()};const id=await addDocCloud("stockItems",data);stockItems.push({...data,docId:id});}}}
-function renderStock(kind){if(!canUseStock())return toast("No tenés permisos para modificar stock.");const draw=()=>{let items=stockItems.filter(x=>x.categoria===kind);if(kind==="Fábrica")items=[...new Set(Object.values(FACTORY_PARTS).flat())].map(nombre=>({nombre,categoria:kind,compatible:Object.entries(FACTORY_PARTS).filter(([,v])=>v.includes(nombre)).map(([k])=>k).join(", ")}));$("stockPanel").innerHTML=`<div class="card"><div class="title">${esc(kind)}</div><label>🔎 Buscar repuesto y agregar</label><input id="stockSearch" list="stockChoices" placeholder="Escribí o elegí un elemento" onchange="selectStockToAdd('${kind}')"><datalist id="stockChoices">${[...new Set([...items.map(x=>x.nombre),...GENERAL_PARTS])].map(x=>`<option value="${esc(x)}">`).join("")}</datalist><div id="stockRows">${items.map(x=>stockRow(x,kind)).join("")}</div><button class="btn primary" style="width:100%;margin-top:8px" onclick="addStockItem('${kind}')">➕ Agregar elemento nuevo</button></div>`};if(kind==="General")ensureGeneralStock().then(draw);else draw();}
-function stockRow(x,kind){if(kind==="Fábrica")return `<div class="item"><b>⚙️ ${esc(x.nombre)}</b><br><span class="muted">Compatible: ${esc(x.compatible||"Todos")}</span></div>`;const bill=x.nombre==="Billetero";const key=String(x.docId||x.nombre).replace(/[^a-zA-Z0-9_-]/g,'_');return `<div class="item"><b>${esc(x.nombre||"")}</b>${bill?`<label>Modelo</label><select id="model-${key}"><option value="">Seleccionar</option>${BILL_MODELS.map(v=>`<option ${x.modelo===v?'selected':''}>${v}</option>`).join("")}</select><label>Configuración</label><select id="cfg-${key}"><option value="">Seleccionar</option>${BILL_CONFIGS.map(v=>`<option ${x.configuracion===v?'selected':''}>${v}</option>`).join("")}</select>`:""}<div class="grid3"><div><label>Stock inicial/actual</label><input id="qty-${key}" type="number" value="${Number(x.stock||0)}"></div><div><label>Mínimo</label><input id="min-${key}" type="number" value="${Number(x.minimo||0)}"></div><div><label>Tomado en viaje</label><input id="take-${key}" type="number" value="0"></div></div><div class="grid"><div><label>Usado en viaje</label><input id="use-${key}" type="number" value="0"></div><div><label>Devuelto</label><input id="return-${key}" type="number" value="0"></div></div><span class="tag">${Number(x.stock||0)<=Number(x.minimo||0)?"⚠️ Comprar":"OK"}</span><button class="btn" style="width:100%;margin-top:8px" onclick="saveStockItem('${esc(x.docId||"")}','${esc(x.nombre||"")}','${kind}')">💾 Guardar stock / viaje</button></div>`;}
-function selectStockToAdd(kind){const n=$("stockSearch")?.value?.trim();if(!n)return;if(stockItems.some(x=>x.categoria===kind&&x.nombre.toLowerCase()===n.toLowerCase())){toast("Ese elemento ya está en la lista.");return;}addStockItem(kind,n)}
-async function addStockItem(kind,preset){const nombre=(preset||(prompt("Nombre del elemento:")||"")).trim();if(!nombre)return;const data={nombre,categoria:kind,stock:0,minimo:0,creado:Date.now()};try{const id=await addDocCloud("stockItems",data);stockItems.push({...data,docId:id});renderStock(kind)}catch(e){toast("No se pudo agregar: "+e.message)}}
-async function saveStockItem(docId,nombre,kind){const item=stockItems.find(x=>x.docId===docId)||{nombre,categoria:kind,stock:0,minimo:0};const key=String(docId||nombre).replace(/[^a-zA-Z0-9_-]/g,'_');const stock=Number($("qty-"+key)?.value||0),minimo=Number($("min-"+key)?.value||0),tomado=Number($("take-"+key)?.value||0),usado=Number($("use-"+key)?.value||0),devuelto=Number($("return-"+key)?.value||0),modelo=$("model-"+key)?.value||null,configuracion=$("cfg-"+key)?.value||null;if(tomado<0||usado<0||devuelto<0||usado+devuelto>tomado)return toast("Revisá el viaje: usado + devuelto no puede superar lo tomado.");const data={nombre,categoria:kind,stock:Math.max(0,stock-tomado+devuelto),minimo,modelo,configuracion,ultimoViaje:{tomado,usado,devuelto,fecha:fmt(Date.now())},actualizado:Date.now()};try{if(docId)await updateDoc(doc(db,"stockItems",docId),data);else{const id=await addDocCloud("stockItems",data);data.docId=id;}const idx=stockItems.findIndex(x=>x.docId===docId);if(idx>=0)stockItems[idx]={...stockItems[idx],...data};else stockItems.push(data);if(tomado||usado||devuelto){const mv={categoria:kind,nombre,modelo,configuracion,tomado,usado,devuelto,quantity:usado,tipo:"viaje",fecha:fmt(Date.now()),ts:Date.now()};const id=await addDocCloud("stockMovements",mv);stockMovements.push({...mv,docId:id});}renderStock(kind);toast("Stock actualizado y movimiento de viaje guardado.");}catch(e){toast("No se pudo guardar el stock: "+(e.message||e))}}
-window.renderZones=renderZones;window.renderStock=renderStock;window.saveStockItem=saveStockItem;window.selectStockToAdd=selectStockToAdd;
+
+const STOCK_FACTORY_NAMES=[...new Set(Object.values(FACTORY_PARTS).flat())].sort((a,b)=>a.localeCompare(b,'es'));
+const STOCK_GENERAL_NAMES=[...new Set(GENERAL_PARTS)].sort((a,b)=>a.localeCompare(b,'es'));
+const STOCK_TOOLS=["Multímetro","Destornilladores","Pinzas","Alicates","Tester","Cinta aisladora"];
+const STOCK_CLEANING=["Trapos","Alcohol","Limpiador","Pincel","Guantes"];
+let stockMode="factory";
+
+function openStockMode(mode){
+  stockMode=mode;
+  renderStockHome();
+}
+function renderStockHome(){
+  if(!canUseStock()) return toast("No tenés permisos para modificar stock.");
+  const title=stockMode==="factory"?"🏭 Pedido de fábrica":"🚐 Control de viaje";
+  const back=`<button class="btn" onclick="show('home');document.getElementById('stockPanel').innerHTML=''">← Inicio</button>`;
+  const switchBtn=stockMode==="factory"
+    ? `<button class="btn" onclick="openStockMode('travel')">🚐 Control de viaje</button>`
+    : `<button class="btn" onclick="openStockMode('factory')">🏭 Pedido de fábrica</button>`;
+  $("stockPanel").innerHTML=`${back}<div class="card"><div class="stockModeTitle"><div class="title">${title}</div></div>
+    <div class="stockSearchRow"><input id="stockModeSearch" placeholder="${stockMode==="factory"?"Buscar repuesto de fábrica...":"Buscar o escribir material..."}" list="stockModeChoices" oninput="filterStockMode()"><button class="btn primary" onclick="addStockModeItem()">➕ Agregar</button></div>
+    <div class="stockHint">${stockMode==="factory"?"Seleccioná un repuesto para sumarlo al pedido.":"Podés agregar herramientas, limpieza, repuestos generales o elementos obtenidos de un pedido de fábrica."}</div>
+    <datalist id="stockModeChoices">${stockModeChoices().map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
+    <div id="stockModeResults"></div>
+    <div id="stockModeList" class="stockList"></div>
+    <div class="stockActions"><button class="btn primary" onclick="saveStockOrder()">💾 Guardar listado</button>${stockMode==="travel"?'<button class="btn" onclick="loadFactoryIntoTravel()">🏭 Cargar desde pedido de fábrica</button>':''}</div>
+  </div>
+  <div id="stockModeHistory" class="stockHistory"></div>`;
+  renderStockModeList();
+  renderStockModeHistory();
+}
+function stockModeChoices(){
+  if(stockMode==="factory") return STOCK_FACTORY_NAMES;
+  return [...new Set([...STOCK_TOOLS,...STOCK_CLEANING,...STOCK_GENERAL_NAMES,...stockItems.map(x=>x.nombre).filter(Boolean)])].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function filterStockMode(){
+  const q=($("stockModeSearch")?.value||"").trim().toLowerCase();
+  const res=$("stockModeResults"); if(!res)return;
+  if(!q){res.innerHTML="";return}
+  const matches=stockModeChoices().filter(x=>x.toLowerCase().includes(q)).slice(0,12);
+  res.innerHTML=matches.map(x=>`<button class="btn" style="margin:4px 4px 0 0" onclick='chooseStockModeItem(${JSON.stringify(x)})'>${esc(x)}</button>`).join("");
+}
+function chooseStockModeItem(name){$("stockModeSearch").value=name;addStockModeItem(name);}
+function addStockModeItem(preset){
+  const name=(preset||$("stockModeSearch")?.value||"").trim();
+  if(!name)return toast("Escribí o seleccioná un elemento.");
+  const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
+  const list=state[stockMode];
+  const existing=list.find(x=>x.nombre.toLowerCase()===name.toLowerCase());
+  if(existing){existing.cantidad=Number(existing.cantidad||0)+1;}
+  else list.push({nombre:name,cantidad:1,modelo:"",configuracion:"",categoria:stockMode==="factory"?"Fábrica":"General"});
+  $("stockModeSearch").value="";
+  $("stockModeResults").innerHTML="";
+  renderStockModeList();
+}
+function renderStockModeList(){
+  const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
+  const list=state[stockMode]||[];
+  const box=$("stockModeList"); if(!box)return;
+  if(!list.length){box.innerHTML='<div class="muted" style="padding:12px 0">Todavía no agregaste elementos.</div>';return}
+  box.innerHTML=list.map((x,i)=>{
+    const bill=x.nombre==="Billetero";
+    return `<div class="stockEntry"><div class="stockEntryHead"><b>${esc(x.nombre)}</b><button class="btn" onclick="removeStockModeItem(${i})">🗑️ Quitar</button></div>
+      ${bill?`<div class="grid"><div><label>Modelo</label><select onchange="updateStockDraft(${i},'modelo',this.value)"><option value="">Seleccionar</option>${BILL_MODELS.map(v=>`<option ${x.modelo===v?'selected':''}>${v}</option>`).join("")}</select></div><div><label>Configuración</label><select onchange="updateStockDraft(${i},'configuracion',this.value)"><option value="">Seleccionar</option>${BILL_CONFIGS.map(v=>`<option ${x.configuracion===v?'selected':''}>${v}</option>`).join("")}</select></div></div>`:""}
+      <label>Cantidad</label><input class="stockQty" type="number" min="1" value="${Number(x.cantidad||1)}" onchange="updateStockDraft(${i},'cantidad',this.value)">
+    </div>`
+  }).join("");
+}
+function updateStockDraft(i,key,val){
+  const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
+  if(!state[stockMode]?.[i])return;
+  state[stockMode][i][key]=key==="cantidad"?Math.max(1,Number(val||1)):val;
+}
+function removeStockModeItem(i){
+  const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
+  state[stockMode].splice(i,1); renderStockModeList();
+}
+async function saveStockOrder(){
+  const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
+  const list=state[stockMode]||[];
+  if(!list.length)return toast("No hay elementos para guardar.");
+  for(const x of list){if(x.nombre==="Billetero"&&(!x.modelo||!x.configuracion))return toast("Completá modelo y configuración del Billetero.");}
+  const ts=Date.now();
+  const data={tipo:stockMode==="factory"?"pedido_fabrica":"control_viaje",items:list.map(x=>({...x})),fecha:fmt(ts),ts,ownerUid:currentUser.uid,teamId:currentTeamId||null,actualizado:ts};
+  try{
+    const id=await addDocCloud("stockOrders",data);
+    stockOrders.push({...data,docId:id});
+    state[stockMode]=[];
+    renderStockModeList(); renderStockModeHistory();
+    toast(stockMode==="factory"?"Pedido de fábrica guardado.":"Control de viaje guardado.");
+  }catch(e){toast("No se pudo guardar el listado: "+(e.message||e))}
+}
+function renderStockModeHistory(){
+  const box=$("stockModeHistory"); if(!box)return;
+  const type=stockMode==="factory"?"pedido_fabrica":"control_viaje";
+  const rows=stockOrders.filter(x=>x.tipo===type).sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
+  box.innerHTML=`<div class="title">📋 Listados guardados</div>${rows.length?rows.map((o,i)=>`<div class="card"><b>${type==="pedido_fabrica"?"🏭 Pedido de fábrica":"🚐 Control de viaje"} — ${esc(o.fecha||"")}</b><div class="muted">${(o.items||[]).length} elementos</div><div style="margin-top:8px">${(o.items||[]).map(x=>`<span class="tag" style="margin:2px">${esc(x.nombre)} × ${Number(x.cantidad||0)}${x.modelo?` · ${esc(x.modelo)}`:""}${x.configuracion?` · ${esc(x.configuracion)}`:""}</span>`).join("")}</div><div class="stockActions"><button class="btn" onclick="editStockOrder('${esc(o.docId||"")}')">✏️ Editar</button><button class="btn" onclick="duplicateStockOrder('${esc(o.docId||"")}')">📋 Cargar para editar</button></div></div>`).join(""):'<div class="muted">Todavía no hay listados guardados.</div>'}`;
+}
+function editStockOrder(id){
+  const o=stockOrders.find(x=>x.docId===id); if(!o)return;
+  const mode=o.tipo==="pedido_fabrica"?"factory":"travel";
+  window.__stockDraft=window.__stockDraft||{factory:[],travel:[]};
+  window.__stockDraft[mode]=(o.items||[]).map(x=>({...x}));
+  stockMode=mode; renderStockHome();
+}
+function duplicateStockOrder(id){editStockOrder(id);}
+async function loadFactoryIntoTravel(){
+  const orders=stockOrders.filter(x=>x.tipo==="pedido_fabrica").sort((a,b)=>Number(b.ts||0)-Number(a.ts||0));
+  if(!orders.length)return toast("Todavía no hay pedidos de fábrica guardados.");
+  const latest=orders[0];
+  window.__stockDraft=window.__stockDraft||{factory:[],travel:[]};
+  const target=window.__stockDraft.travel;
+  for(const x of (latest.items||[])){
+    const found=target.find(y=>y.nombre===x.nombre&&y.modelo===x.modelo&&y.configuracion===x.configuracion);
+    if(found)found.cantidad+=Number(x.cantidad||0);
+    else target.push({...x});
+  }
+  renderStockModeList(); toast("Se cargó el último pedido de fábrica en el control de viaje.");
+}
+window.openStockMode=openStockMode;window.renderStockHome=renderStockHome;window.renderStock=renderStockHome;
+window.addStockModeItem=addStockModeItem;window.chooseStockModeItem=chooseStockModeItem;window.filterStockMode=filterStockMode;
+window.updateStockDraft=updateStockDraft;window.removeStockModeItem=removeStockModeItem;window.saveStockOrder=saveStockOrder;
+window.editStockOrder=editStockOrder;window.duplicateStockOrder=duplicateStockOrder;window.loadFactoryIntoTravel=loadFactoryIntoTravel;
 
 async function reauth(){
   if(!currentUser)return false;
