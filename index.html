@@ -535,28 +535,35 @@ function removeStockModeItem(i){
 }
 async function saveStockOrder(){
   const state=window.__stockDraft||(window.__stockDraft={factory:[],travel:[]});
-  const list=(state[stockMode]||[]).map(x=>({...x}));
+  const mode=stockMode;
+  const list=(state[mode]||[]).map(x=>({...x}));
   if(!list.length)return toast("No hay elementos para guardar.");
   for(const x of list){if(x.nombre==="Billetero"&&(!x.modelo||!x.configuracion))return toast("Completá modelo y configuración del Billetero.");}
   const ts=Date.now();
-  const type=stockMode==="factory"?"pedido_fabrica":"control_viaje";
+  const type=mode==="factory"?"pedido_fabrica":"control_viaje";
   try{
+    if(!currentUser || !currentUser.uid) return toast("La sesión todavía no está lista. Cerrá y volvé a entrar.");
     if(stockOrderEditingId){
-      const existing=stockOrders.find(x=>x.docId===stockOrderEditingId);
+      const editingId=stockOrderEditingId;
+      const existing=stockOrders.find(x=>x.docId===editingId);
       if(!existing)return toast("El listado que estabas editando ya no existe.");
       const previous={items:(existing.items||[]).map(x=>({...x})),actualizado:existing.actualizado||existing.ts||ts};
       const historial=[...(existing.historialEdiciones||[]),previous];
-      await updateDoc(doc(db,"stockOrders",stockOrderEditingId),{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial,estado:existing.estado||"activo"});
+      await updateDoc(doc(db,"stockOrders",editingId),{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial,estado:existing.estado||"activo"});
       Object.assign(existing,{items:list,actualizado:ts,version:Number(existing.version||1)+1,historialEdiciones:historial});
-      stockOrderEditingId=null; state[stockMode]=[]; renderStockModeList(); renderStockModeHistory();
+      stockOrderEditingId=null; state[mode]=[]; renderStockModeList(); renderStockModeHistory();
       return toast("Listado actualizado y versión anterior conservada en el historial.");
     }
     const data={tipo:type,items:list,fecha:fmt(ts),ts,ownerUid:currentUser.uid,teamId:currentTeamId||null,actualizado:ts,estado:"activo",version:1,historialEdiciones:[]};
-    const id=await addDocCloud("stockOrders",data);
+    const ref=await addDoc(collection(db,"stockOrders"),data);
+    const id=ref.id;
     stockOrders.push({...data,docId:id});
-    state[stockMode]=[]; renderStockModeList(); renderStockModeHistory();
-    toast(stockMode==="factory"?"Pedido de fábrica guardado.":"Control de viaje guardado.");
-  }catch(e){toast("No se pudo guardar el listado: "+(e.message||e))}
+    state[mode]=[]; renderStockModeList(); renderStockModeHistory();
+    toast(mode==="factory"?"Pedido de fábrica guardado.":"Control de viaje guardado.");
+  }catch(e){
+    console.error("saveStockOrder",e);
+    toast("No se pudo guardar el listado: "+(e?.message||String(e)));
+  }
 }
 function renderStockModeHistory(){
   const box=$("stockModeHistory"); if(!box)return;
