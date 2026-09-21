@@ -1,79 +1,4 @@
-<!doctype html>
-<html lang="es"><head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#111827"><link rel="manifest" href="./manifest.webmanifest">
-<title>Inventario de Máquinas</title>
-<style>
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:#f3f4f6;color:#111827}
-header{background:#111827;color:white;padding:18px;position:sticky;top:0;z-index:5}h1{font-size:21px;margin:0}.sub{font-size:12px;opacity:.8}
-main{max-width:900px;margin:auto;padding:14px 14px 85px}.hidden{display:none!important}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.card,.item{background:white;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:0 2px 10px #0001}
-.btn{border:0;border-radius:11px;padding:12px;font-weight:700;background:#e5e7eb}.primary{background:#111827;color:white}.blue{background:#dbeafe}.yellow{background:#fef3c7}.green{background:#dcfce7}
-.title{font-size:18px;font-weight:800;margin:8px 0 12px}.muted{color:#6b7280;font-size:13px}.count{font-size:25px;font-weight:900}
-input,select,textarea{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:10px;margin:5px 0 10px;font:inherit}textarea{min-height:90px}
-label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fafb;padding:9px;border-radius:9px;margin:5px 0}.task input{width:auto;margin:2px 0}
-.tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
-.bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
-\n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}.stockList{display:grid;gap:8px;margin-top:12px}.stockEntry{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.stockEntryHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.stockActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.stockHistory{margin-top:16px}.stockHistory .card{margin-bottom:8px}.stockQty{max-width:110px}.stockModeTitle{display:flex;align-items:center;gap:8px}.stockSearchRow{display:flex;gap:8px}.stockSearchRow input{flex:1}.stockHint{font-size:12px;color:#6b7280;margin-top:5px}</style></head><body>
-<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v20.1</div></header>
-<section id="auth" class="authWrap">
-  <div class="authCard">
-    <div class="title" id="authTitle">Iniciar sesión</div>
-    <div class="muted">Entrá con tu cuenta. Podés trabajar con tu inventario propio o con un equipo compartido.</div>
-    <form id="authForm">
-      <div id="nameWrap" class="hidden"><label>Nombre</label><input id="authName" autocomplete="name"><label>Rol solicitado</label><select id="authRole"><option value="tecnico">Técnico</option><option value="operador">Operador</option><option value="supervisor">Supervisor</option></select></div>
-      <label>Correo electrónico</label><input id="authEmail" type="email" autocomplete="username" required>
-      <label>Contraseña</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required>
-      <button id="authAction" class="btn primary" style="width:100%">Entrar</button>
-    </form>
-    <button type="button" id="authSwitch" class="btn" style="width:100%;margin-top:8px">¿Es tu primera vez? Crear cuenta</button>
-    <button type="button" id="forgotBtn" class="btn" style="width:100%;margin-top:8px">🔑 ¿Olvidaste tu contraseña?</button>
-    <div id="authMsg" class="error"></div><div id="busy" class="busy hidden"></div>
-  </div>
-</section>
-<div id="app" class="hidden">
-<main>
-<div id="userBar" class="userbar"></div>
-<section id="home">
-<div class="grid">
-<button class="card btn blue" onclick="show('search')">🔎<br>Buscar</button>
-<button class="card btn green" onclick="show('add')">➕<br>Agregar</button>
-<button class="card btn yellow" onclick="show('obs')">📝<br>Observación</button>
-<button class="card btn" onclick="show('moves')">🔄<br>Movimiento</button>
-<button class="card btn" onclick="show('catalog')">📚<br>Catálogo</button>
-<button class="card btn blue" onclick="show('stock')">📦<br>Control de stock</button>
-<button class="card btn green" onclick="show('zones')">📍<br>Zonas y visitas</button>
-<button class="card btn" onclick="show('bajas')">🗑️<br>Dadas de baja</button>
-<button class="card btn" onclick="backup()">💾<br>Respaldo</button>
-<button class="card btn blue" onclick="show('transfer')">🔄<br>Transferencia de respaldo</button>
-<button id="supervisorBtn" class="card btn" style="background:#ede9fe;color:#5b21b6" onclick="show('supervisor');renderSupervisor()">👨‍💼<br>Panel supervisor</button>
-<button class="card btn" style="background:#fee2e2;color:#991b1b" onclick="show('account')">⚠️<br>Cuenta</button>
-</div><div class="card"><div class="title">📊 Resumen</div><div id="summary"></div></div>
-<div class="card"><b>🔒 Seguridad</b><div class="muted">Cada registro pertenece a tu cuenta. Las correcciones de ID y las bajas requieren volver a verificar tu contraseña.</div></div>
-</section>
-<section id="emptyCloud" class="hidden"><div class="card"><div class="title">☁️ Tu base está lista</div><p>No hay máquinas cargadas todavía.</p><div id="importBox"></div></div></section>
-<section id="search" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔎 Buscar</div><input id="q" placeholder="ID, cliente, localidad, tarea, observación..." oninput="renderSearch()"><div id="results"></div></section>
-<section id="add" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">➕ Agregar máquina</div><form onsubmit="addMachine(event)"><label>ID de fábrica</label><input id="a_id" required><label>N.º de cliente</label><input id="a_cliente"><label>Tipo / modelo</label><input id="a_tipo" required><label>Provincia</label><input id="a_provincia"><label>Localidad</label><input id="a_localidad"><label>Ubicación</label><input id="a_ubicacion"><label>Responsable</label><input id="a_responsable"><label>Estado</label><select id="a_estado"><option>Activa</option><option>En mantenimiento</option><option>Fuera de servicio</option><option>Baja</option></select><button class="btn primary" style="width:100%">Guardar</button></form></section>
-<section id="obs" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📝 Nueva observación</div><select id="o_machine"></select><textarea id="o_text" placeholder="Observación..."></textarea><button class="btn primary" style="width:100%" onclick="saveObs()">Guardar en historial</button></section>
-<section id="moves" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Movimiento / corrección</div><select id="mv_machine" onchange="fillMove()"></select><div class="card" id="moveCurrent"></div><label>Tipo</label><select id="mv_type"><option>Traslado</option><option>Cambio de cliente</option><option>Corrección de cliente</option><option>Corrección de localidad</option><option>Cambio de ubicación</option><option>Otro</option></select><label>Cliente actual</label><input id="mv_cliente"><label>Localidad actual</label><input id="mv_localidad"><label>Ubicación actual</label><input id="mv_ubicacion"><label>Motivo / detalle</label><textarea id="mv_detail"></textarea><label>Observaciones</label><textarea id="mv_note"></textarea><button class="btn primary" style="width:100%" onclick="saveMove()">Guardar registro</button></section>
-<section id="wawa" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🟡 Mantenimiento Wawa</div><div id="wawaList"></div></section>
-<section id="pel" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🧸 Mantenimiento Pelucheras</div><div id="pelList"></div></section>
-<section id="keys" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔑 Mantenimiento Llaveros</div><div id="keyList"></div></section>
-<section id="bajas" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🗑️ Máquinas dadas de baja</div><div class="muted">No se eliminan: quedan conservadas con todo su historial.</div><div id="bajasList"></div></section>
-<section id="catalog" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📚 Catálogo ampliable</div><div class="muted">El catálogo es independiente del inventario real.</div><div id="catalogList"></div></section>
-<section id="zones" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📍 Zonas · visitas</div><div class="muted">Las máquinas se separan entre visitadas y sin visitar. Cada visita conserva sus relojes, placa, stock y trabajo realizado.</div><div id="zoneVisitList"></div></section>
-<section id="stock" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">📦 Control de stock</div><div class="muted">Prepará pedidos de fábrica y armá el control de cada viaje. Los listados quedan guardados y se pueden editar.</div><div id="stockHome" class="grid" style="margin-top:12px"><button class="card btn" style="min-height:130px;font-size:16px" onclick="openStockMode('factory')">🏭<br><b>Pedido de fábrica</b><small class="muted">Pedir repuestos y materiales</small></button><button class="card btn" style="min-height:130px;font-size:16px" onclick="openStockMode('travel')">🚐<br><b>Control de viaje</b><small class="muted">Preparar lo que llevo</small></button></div><div id="stockPanel"></div></section>
-<section id="visit" class="hidden"></section>
-<section id="transfer" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">🔄 Transferencia de respaldo</div><div class="muted">Pasá máquinas seleccionadas a otro técnico mediante un archivo. Se conservan los datos y el historial; la otra cuenta recibe copias propias y separadas.</div><div class="card"><b>📤 Enviar respaldo</b><label>Filtrar por localidad, provincia, ID o tipo</label><input id="tr_filter" placeholder="Ej.: Resistencia, Chaco, PCH..." oninput="renderTransferList()"><div style="margin:8px 0"><button class="btn" onclick="selectAllTransfer(true)">Seleccionar todas</button> <button class="btn" onclick="selectAllTransfer(false)">Limpiar selección</button></div><div id="transferList"></div><button class="btn primary" style="width:100%;margin-top:8px" onclick="exportTransfer()">📤 Generar transferencia</button></div><div class="card"><b>📥 Recibir respaldo</b><div class="muted">Elegí el archivo que te envió otro técnico. Antes de guardar, la app te mostrará cuántas máquinas e historiales contiene.</div><input id="transferFile" type="file" accept="application/json,.json" onchange="previewTransfer(event)"><div id="transferPreview" style="margin-top:8px"></div></div></section>
-<section id="supervisor" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">👨‍💼 Panel de supervisión y administración</div><div id="supervisorGuard" class="muted"></div><div id="supervisorPanel"></div></section>
-<section id="account" class="hidden"><button class="btn" onclick="show('home')">← Inicio</button><div class="title">⚠️ Cuenta</div><div class="card"><b>Cuenta actual</b><br><span class="muted" id="accountEmail"></span></div><div class="card" style="border:1px solid #bfdbfe"><div class="title">👥 Equipo compartido</div><div class="muted">Cuando las cuentas pertenecen al mismo equipo, trabajan sobre la misma base. Los técnicos ven sus máquinas asignadas y el supervisor puede administrarlas. El historial queda compartido.</div><div id="teamStatus" style="margin-top:10px"></div><button class="btn primary" style="width:100%;margin-top:8px" id="createTeamBtn" onclick="createTeam()">➕ Crear equipo y compartir mi inventario</button><button class="btn" style="width:100%;margin-top:8px" onclick="joinTeam()">🔗 Unirme con código de equipo</button></div><div class="card" style="border:1px solid #fecaca"><div class="title" style="color:#991b1b">🗑️ Eliminar cuenta</div><p>Si dejás la empresa, podés eliminar el acceso de esta cuenta.</p><p class="muted">La eliminación borra el acceso de inicio de sesión. Los registros compartidos no se borran desde el teléfono.</p><button class="btn" style="width:100%;background:#dc2626;color:white" onclick="deleteMyAccount()">🗑️ Eliminar mi cuenta</button></div><div class="card"><button class="btn" style="width:100%" onclick="logout()">Cerrar sesión</button></div></section>
-<section id="detail" class="hidden"></section>
-</main>
-<nav class="bottom"><button onclick="show('home')">🏠<br>Inicio</button><button onclick="show('search')">🔎<br>Buscar</button><button onclick="show('obs')">📝<br>Obs.</button><button onclick="show('moves')">🔄<br>Mov.</button></nav>
-</div>
 
-<script>
 window.addEventListener("error",function(ev){
   const msg=document.getElementById("authMsg");
   if(msg && !window.__appBooted){
@@ -90,8 +15,8 @@ window.addEventListener("unhandledrejection",function(ev){
     console.error("Promesa rechazada al iniciar:",ev.reason);
   }
 });
-</script>
-<script type="module">
+
+
 const [firebaseApp, firebaseAuth, firebaseFirestore] = await Promise.all([
   import("https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js"),
   import("https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js"),
@@ -986,5 +911,4 @@ window.__appBooted=true;
 if("serviceWorker" in navigator){
   window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=19.9").catch(err=>console.warn("Service worker no registrado:",err)));
 }
-</script>
-</body></html>
+
