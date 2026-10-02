@@ -315,6 +315,7 @@ async function loadCloud(){
   }catch(err){console.error(err);toast("No pude cargar tu base: "+(err.message||err))}finally{setBusy("")}
 }
 async function saveDoc(name,id,data){await setDoc(doc(db,name,id),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{}),...(name==="machines" && currentTeamId && !data.assignedUid?{assignedUid:currentUser.uid,assignedNombre:currentUser.displayName||""}:{})})}
+async function updateDocCloud(name,id,data){await setDoc(doc(db,name,id),{...data},{merge:true});}
 async function addDocCloud(name,data){const ref=await addDoc(collection(db,name),{...data,ownerUid:currentUser.uid,...(currentTeamId?{teamId:currentTeamId}:{}),...(name==="machines" && currentTeamId && !data.assignedUid?{assignedUid:currentUser.uid,assignedNombre:currentUser.displayName||""}:{})});return ref.id}
 
 function show(id){
@@ -355,13 +356,36 @@ function renderSearch(){
 window.renderSearch=renderSearch;
 function detail(rid){
   const m=machine(rid);if(!m)return;
-  const ev=[...observations.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📝 "+esc(x.texto)})),...maintenance.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔧 "+esc(x.tareas)+"<br>"+esc(x.observaciones)})),...movements.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔄 "+esc(x.tipoMovimiento||"")+"<br>"+esc(x.detalle||"")+"<br>"+esc(x.observaciones||"")})),...visits.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📍 Visita · COIN "+(x.coinDiferencia??"—")+" · WIN "+(x.winDiferencia??"—")+" · MP "+(x.mpDiferencia??"—")+" · Placa "+(x.placa??"—")+" · "+(x.porcentaje??0)+"%<br>"+esc(x.observaciones||"")}))].sort((a,b)=>b.ts-a.ts);
+  const ev=[...observations.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📝 "+esc(x.texto)})),...maintenance.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔧 "+esc(x.tareas)+"<br>"+esc(x.observaciones)})),...movements.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔄 "+esc(x.tipoMovimiento||"")+"<br>"+esc(x.detalle||"")+"<br>"+esc(x.observaciones||"")})),...visits.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📍 Visita · COIN "+(x.coinDiferencia??"—")+" · WIN "+(x.winDiferencia??"—")+" · MP "+(x.mpDiferencia??"—")+" · Placa "+(x.placa??"—")+" · "+(x.porcentaje??0)+"%<br>"+esc(x.observaciones||"")+((canEditVisit(x))?`<button class="btn yellow" style="margin-top:8px" onclick="openEditVisit('${x.docId}')">✏️ Modificar visita</button>`:"")}))].sort((a,b)=>b.ts-a.ts);
   $("detail").innerHTML=`<button class="btn" onclick="show('search')">← Volver</button><div class="card"><div class="title">${esc(m.id)}</div><b>${esc(m.tipo)}</b><p>Cliente: ${esc(m.cliente)}<br>Provincia: ${esc(m.provincia)}<br>Localidad: ${esc(m.localidad)}<br>Ubicación: ${esc(m.ubicacion)}<br>Responsable: ${esc(m.responsable)}<br>Estado: <b>${esc(m.estado)}</b></p><div class="grid"><button class="btn green" onclick="openVisit('${rid}')">📍 Registrar visita</button><button class="btn yellow" onclick="editMachine('${rid}')">✏️ Corregir ID</button><button class="btn" onclick="retireMachine('${rid}')">🗑️ Dar de baja</button></div></div></div><div class="title">📚 Historial</div><div class="timeline">${ev.length?ev.map(x=>`<div class="item"><div class="muted">${fmt(x.ts)}</div>${x.h}</div>`).join(""):"<div class="muted">Sin registros.</div>"}</div>`;
   document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));$("detail").classList.remove("hidden");
 }
 window.detail=detail;
 function isPeluchera(m){return /peluch|toy soldier|crazy toy|hip hop elf|angel|joy player|future melody|melody grido/i.test(String(m?.tipo||""));}
 function visitFor(rid){return visits.filter(v=>v.rid===rid).sort((a,b)=>(b.ts||0)-(a.ts||0))[0]}
+function canEditVisit(v){return !!currentUser && (isAdmin() || (v && v.ownerUid===currentUser.uid) || (currentTeamId && v && v.teamId===currentTeamId))}
+function openEditVisit(docId){
+  const v=visits.find(x=>x.docId===docId); if(!v)return toast("No encontré esa visita.");
+  const m=machines.find(x=>x.rid===v.rid); if(!m)return toast("No encontré la máquina de esta visita.");
+  const coinPrev=v.coinAnterior ?? "", winPrev=v.winAnterior ?? "", mpPrev=v.mpAnterior ?? "";
+  $("visit").innerHTML=`<button class="btn" onclick="detail('${v.rid}')">← Volver</button><div class="title">✏️ Modificar visita · ${esc(m.id)}</div>
+  <div class="card"><label>Porcentaje de trabajo<input id="evPct" type="number" min="0" max="100" value="${v.porcentaje??0}"></label>
+  <label>COIN anterior<input id="evCoinPrev" type="number" value="${coinPrev}"></label><label>COIN actual<input id="evCoinActual" type="number" value="${v.coinActual??""}"></label>
+  <label>WIN anterior<input id="evWinPrev" type="number" value="${winPrev}"></label><label>WIN actual<input id="evWinActual" type="number" value="${v.winActual??""}"></label>
+  <label>MP anterior<input id="evMpPrev" type="number" value="${mpPrev}"></label><label>MP actual<input id="evMpActual" type="number" value="${v.mpActual??""}"></label>
+  <label>Placa<input id="evPlaca" type="number" value="${v.placa??""}"></label>
+  <label>Peluches anterior<input id="evStockPrev" type="number" value="${v.peluchesAnterior??""}"></label><label>Peluches en máquina<input id="evStockMachine" type="number" value="${v.peluchesMaquina??""}"></label><label>Peluches en depósito<input id="evStockDepot" type="number" value="${v.peluchesDeposito??""}"></label>
+  <label>Observaciones<textarea id="evNote">${esc(v.observaciones||"")}</textarea></label>
+  <button class="btn primary" style="width:100%" onclick="saveEditVisit('${docId}')">💾 Guardar cambios</button></div>`;
+  show("visit");
+}
+async function saveEditVisit(docId){
+  const v=visits.find(x=>x.docId===docId); if(!v)return;
+  if(!canEditVisit(v))return toast("No tenés permiso para modificar esta visita.");
+  const coinPrev=num("evCoinPrev"),coinActual=num("evCoinActual"),winPrev=num("evWinPrev"),winActual=num("evWinActual"),mpPrev=num("evMpPrev"),mpActual=num("evMpActual");
+  const patch={porcentaje:Number($("evPct").value||0),coinAnterior:coinPrev,coinActual,coinDiferencia:coinPrev!=null&&coinActual!=null?coinActual-coinPrev:null,winAnterior:winPrev,winActual,winDiferencia:winPrev!=null&&winActual!=null?winActual-winPrev:null,mpAnterior:mpPrev,mpActual,mpDiferencia:mpPrev!=null&&mpActual!=null?mpActual-mpPrev:null,placa:num("evPlaca"),peluchesAnterior:num("evStockPrev"),peluchesMaquina:num("evStockMachine"),peluchesDeposito:num("evStockDepot"),observaciones:$("evNote").value.trim(),modificadoTs:Date.now(),modificadoPorUid:currentUser.uid,modificadoPorNombre:currentUser.displayName||currentUser.email||""};
+  try{await updateDocCloud("visits",docId,patch); const i=visits.findIndex(x=>x.docId===docId); if(i>=0)visits[i]={...visits[i],...patch}; toast("Visita modificada correctamente."); detail(v.rid);}catch(e){toast("No se pudo modificar la visita: "+(e.message||e))}
+}
 function machineVisitState(rid){return visitFor(rid)?"visitada":"sin visitar"}
 function openVisit(rid){
   const m=machine(rid); if(!m)return;

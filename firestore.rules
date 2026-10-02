@@ -53,7 +53,7 @@ service cloud.firestore {
     }
 
     match /observations/{id} {
-      allow read: if canRead(resource.data); allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam()); allow update: if canManageTeam() && sameTeam(resource.data); allow delete: if false;
+      allow read: if canRead(resource.data); allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam()); allow update: if isAdmin() || (signedIn() && sameTeam(resource.data) && resource.data.ownerUid == request.auth.uid && request.resource.data.ownerUid == resource.data.ownerUid && request.resource.data.teamId == resource.data.teamId) || (isSupervisor() && sameTeam(resource.data)); allow delete: if false;
     }
     match /maintenance/{id} {
       allow read: if canRead(resource.data); allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid && (request.resource.data.teamId == null || request.resource.data.teamId == myTeam()); allow update: if canManageTeam() && sameTeam(resource.data); allow delete: if false;
