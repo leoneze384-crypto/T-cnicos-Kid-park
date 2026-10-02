@@ -380,6 +380,7 @@ function openEditVisit(docId){
   show("visit");
 }
 async function saveEditVisit(docId){
+  const num=id=>$(id)?.value===""?null:Number($(id).value);
   const v=visits.find(x=>x.docId===docId); if(!v)return;
   if(!canEditVisit(v))return toast("No tenés permiso para modificar esta visita.");
   const coinPrev=num("evCoinPrev"),coinActual=num("evCoinActual"),winPrev=num("evWinPrev"),winActual=num("evWinActual"),mpPrev=num("evMpPrev"),mpActual=num("evMpActual");
