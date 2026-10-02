@@ -386,6 +386,7 @@ async function saveEditVisit(docId){
   const patch={porcentaje:Number($("evPct").value||0),coinAnterior:coinPrev,coinActual,coinDiferencia:coinPrev!=null&&coinActual!=null?coinActual-coinPrev:null,winAnterior:winPrev,winActual,winDiferencia:winPrev!=null&&winActual!=null?winActual-winPrev:null,mpAnterior:mpPrev,mpActual,mpDiferencia:mpPrev!=null&&mpActual!=null?mpActual-mpPrev:null,placa:num("evPlaca"),peluchesAnterior:num("evStockPrev"),peluchesMaquina:num("evStockMachine"),peluchesDeposito:num("evStockDepot"),observaciones:$("evNote").value.trim(),modificadoTs:Date.now(),modificadoPorUid:currentUser.uid,modificadoPorNombre:currentUser.displayName||currentUser.email||""};
   try{await updateDocCloud("visits",docId,patch); const i=visits.findIndex(x=>x.docId===docId); if(i>=0)visits[i]={...visits[i],...patch}; toast("Visita modificada correctamente."); detail(v.rid);}catch(e){toast("No se pudo modificar la visita: "+(e.message||e))}
 }
+window.openEditVisit=openEditVisit;window.saveEditVisit=saveEditVisit;
 function machineVisitState(rid){return visitFor(rid)?"visitada":"sin visitar"}
 function openVisit(rid){
   const m=machine(rid); if(!m)return;
