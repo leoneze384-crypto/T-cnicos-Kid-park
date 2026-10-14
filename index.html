@@ -16,7 +16,7 @@ label{font-size:13px;font-weight:700}.task{display:flex;gap:8px;background:#f9fa
 .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#e5e7eb;font-size:11px}.timeline{border-left:3px solid #d1d5db;padding-left:10px}
 .bottom{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #ddd;padding:7px;display:grid;grid-template-columns:repeat(4,1fr);z-index:10}.bottom button{border:0;background:white;font-size:11px}
 \n.authWrap{min-height:calc(100vh - 78px);display:flex;align-items:center;justify-content:center;padding:20px}.authCard{width:min(460px,100%);background:white;border-radius:18px;padding:20px;box-shadow:0 4px 24px #0002}.error{color:#b91c1c;font-size:13px;margin-top:10px}.busy{margin-top:10px;padding:10px;background:#eff6ff;border-radius:10px;color:#1d4ed8;font-size:13px}.userbar{max-width:900px;margin:8px auto;padding:10px 14px;background:#e5e7eb;border-radius:10px;font-size:13px}.stockList{display:grid;gap:8px;margin-top:12px}.stockEntry{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:12px}.stockEntryHead{display:flex;justify-content:space-between;gap:8px;align-items:center}.stockActions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.stockHistory{margin-top:16px}.stockHistory .card{margin-bottom:8px}.stockQty{max-width:110px}.stockModeTitle{display:flex;align-items:center;gap:8px}.stockSearchRow{display:flex;gap:8px}.stockSearchRow input{flex:1}.stockHint{font-size:12px;color:#6b7280;margin-top:5px}</style></head><body>
-<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v20.9</div></header>
+<header><h1>📦 Centro de control · Inventario</h1><div class="sub">Base central · historial protegido · inventario compartido por equipo · v21.0</div></header>
 <section id="auth" class="authWrap">
   <div class="authCard">
     <div class="title" id="authTitle">Iniciar sesión</div>
@@ -434,7 +434,7 @@ window.renderSearch=renderSearch;
 function detail(rid){
   const m=machine(rid);if(!m)return;
   const ev=[...observations.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📝 "+esc(x.texto)})),...maintenance.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔧 "+esc(x.tareas)+"<br>"+esc(x.observaciones)})),...movements.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"🔄 "+esc(x.tipoMovimiento||"")+"<br>"+esc(x.detalle||"")+"<br>"+esc(x.observaciones||"")})),...visits.filter(x=>x.rid===rid).map(x=>({ts:x.ts||0,h:"📍 Visita · COIN "+(x.coinDiferencia??"—")+" · WIN "+(x.winDiferencia??"—")+" · MP "+(x.mpDiferencia??"—")+" · Placa "+(x.placa??"—")+" · "+(x.porcentaje??0)+"%<br>"+esc(x.observaciones||"")+((canEditVisit(x))?`<button class="btn yellow" style="margin-top:8px" onclick="openEditVisit('${x.docId}')">✏️ Modificar visita</button>`:"")}))].sort((a,b)=>b.ts-a.ts);
-  $("detail").innerHTML=`<button class="btn" onclick="show('search')">← Volver</button><div class="card"><div class="title">${esc(m.id)}</div><b>${esc(m.tipo)}</b><p>Cliente: ${esc(m.cliente)}<br>Provincia: ${esc(m.provincia)}<br>Localidad: ${esc(m.localidad)}<br>Ubicación: ${esc(m.ubicacion)}<br>Responsable: ${esc(m.responsable)}<br>Estado: <b>${esc(m.estado)}</b></p><div class="grid"><button class="btn green" onclick="openVisit('${rid}')">📍 Registrar visita</button><button class="btn yellow" onclick="editMachine('${rid}')">✏️ Corregir ID</button><button class="btn" onclick="retireMachine('${rid}')">🗑️ Dar de baja</button></div></div></div><div class="title">📚 Historial</div><div class="timeline">${ev.length?ev.map(x=>`<div class="item"><div class="muted">${fmt(x.ts)}</div>${x.h}</div>`).join(""): '<div class="muted">Sin registros.</div>'}</div>`;
+  $("detail").innerHTML=`<button class="btn" onclick="show('search')">← Volver</button><div class="card"><div class="title">${esc(m.id)}</div><b>${esc(m.tipo)}</b><p>Cliente: ${esc(m.cliente)}<br>Provincia: ${esc(m.provincia)}<br>Localidad: ${esc(m.localidad)}<br>Ubicación: ${esc(m.ubicacion)}<br>Responsable: ${esc(m.responsable)}<br>Estado: <b>${esc(m.estado)}</b></p><div class="grid"><button class="btn green" onclick="openVisit('${rid}')">📍 Registrar visita</button><button class="btn yellow" onclick="editMachine('${rid}')">✏️ Editar datos completos</button><button class="btn" onclick="retireMachine('${rid}')">🗑️ Dar de baja</button></div></div></div><div class="title">📚 Historial</div><div class="timeline">${ev.length?ev.map(x=>`<div class="item"><div class="muted">${fmt(x.ts)}</div>${x.h}</div>`).join(""): '<div class="muted">Sin registros.</div>'}</div>`;
   document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));$("detail").classList.remove("hidden");
 }
 window.detail=detail;
@@ -442,6 +442,10 @@ function normalizeMachineType(value){return String(value||"").normalize("NFD").r
 function isPeluchera(m){
   const t=normalizeMachineType(m?.tipo);
   return /peluch/.test(t) || /toy soldier/.test(t) || /crazy toy/.test(t) || /hip hop (elf|grido)/.test(t) || /melody grido/.test(t) || /(^| )angel($| )/.test(t) || /joy player/.test(t) || /future melody/.test(t);
+}
+function isWawa(m){
+  const t=normalizeMachineType(m?.tipo);
+  return /(^| )wawa( |$)/.test(t) || /wawa doble/.test(t);
 }
 function visitFor(rid){return visits.filter(v=>v.rid===rid).sort((a,b)=>(b.ts||0)-(a.ts||0))[0]}
 function canEditVisit(v){return !!currentUser && (isAdmin() || (v && v.ownerUid===currentUser.uid) || (currentTeamId && v && v.teamId===currentTeamId))}
@@ -502,13 +506,13 @@ async function saveVisit(rid){
  const m=machine(rid); if(!m)return toast("No encontré la máquina para guardar la visita."); if(!currentUser?.uid)return toast("La sesión no está lista. Cerrá y volvé a entrar antes de guardar."); const btn=document.querySelector("#visit button.primary"); if(btn){btn.disabled=true;btn.textContent="Guardando visita…";} const ts=Date.parse($("vDate").value)||Date.now();
  const num=id=>$(id)?.value===""?null:Number($(id).value);
  const coinPrev=num("coinPrev"),coinActual=num("coinNow"),winPrev=num("winPrev"),winActual=num("winNow"),mpPrev=num("mpPrev"),mpActual=num("mpNow");
- const data={rid,id:m.id,tipo:m.tipo,ts,fecha:fmt(ts),visitada:true,porcentaje:Number($("vPct").value||0),coinAnterior:coinPrev,coinActual,coinDiferencia:coinPrev!=null&&coinActual!=null?coinActual-coinPrev:null,winAnterior:winPrev,winActual,winDiferencia:winPrev!=null&&winActual!=null?winActual-winPrev:null,mpAnterior:mpPrev,mpActual,mpDiferencia:mpPrev!=null&&mpActual!=null?mpActual-mpPrev:null,placa:num("vPlaca"),peluchesAnterior:num("vStockPrev"),peluchesMaquina:num("vStockMachine"),peluchesDeposito:num("vStockDepot"),observaciones:$("vNote").value.trim(),responsableUid:currentUser.uid,responsableNombre:currentUser.displayName||currentUser.email||""};
+ const data={rid,id:m.id,tipo:m.tipo,categoriaMaquina:isWawa(m)?"wawa":(isPeluchera(m)?"peluchera":"general"),esWawa:isWawa(m),ts,fecha:fmt(ts),visitada:true,porcentaje:Number($("vPct").value||0),coinAnterior:coinPrev,coinActual,coinDiferencia:coinPrev!=null&&coinActual!=null?coinActual-coinPrev:null,winAnterior:winPrev,winActual,winDiferencia:winPrev!=null&&winActual!=null?winActual-winPrev:null,mpAnterior:mpPrev,mpActual,mpDiferencia:mpPrev!=null&&mpActual!=null?mpActual-mpPrev:null,placa:num("vPlaca"),peluchesAnterior:num("vStockPrev"),peluchesMaquina:num("vStockMachine"),peluchesDeposito:num("vStockDepot"),observaciones:$("vNote").value.trim(),responsableUid:currentUser.uid,responsableNombre:currentUser.displayName||currentUser.email||""};
  try{const docId=await addDocCloud("visits",data);visits.push({...data,docId});
    const part=$("vFactoryPart")?.value, qty=Number($("vFactoryQty")?.value||0); if(part&&qty>0){const st={rid,id:m.id,machineType:m.tipo,part,quantity:qty,visitId:docId,fecha:fmt(ts),tipo:"uso_fabrica"};const sid=await addDocCloud("stockMovements",st);stockMovements.push({...st,docId:sid});}
    toast("Visita guardada. Los relojes, placa y stock quedaron en el historial.");detail(rid);
- }catch(e){toast("No se pudo guardar la visita: "+(e?.code?e.code+" — ":"")+(e.message||e));if(btn){btn.disabled=false;btn.textContent="💾 Guardar visita";}}
+ }catch(e){console.error("Error guardando visita",{rid,machineType:m.tipo,teamId:currentTeamId,code:e?.code,message:e?.message,error:e});const detailMsg=(e?.code?e.code+" — ":"")+(e?.message||String(e));toast("No se pudo guardar la visita: "+detailMsg);if(btn){btn.disabled=false;btn.textContent="💾 Guardar visita";}}
 }
-window.openVisit=openVisit;window.saveVisit=saveVisit;window.isPeluchera=isPeluchera;
+window.openVisit=openVisit;window.saveVisit=saveVisit;window.isPeluchera=isPeluchera;window.isWawa=isWawa;
 function renderZones(){const list=machines.filter(m=>m.estado!=="Baja");const visited=list.filter(m=>visitFor(m.rid)),pending=list.filter(m=>!visitFor(m.rid));const card=(title,arr,empty)=>`<div class="card"><div class="title">${title} (${arr.length})</div>${arr.length?arr.map(m=>`<div class="item"><b>${esc(m.id)}</b> · ${esc(m.tipo)}<br>${esc(m.zona||m.provincia||"")}<br><span class="tag">${visitFor(m.rid)?`Visitada · ${visitFor(m.rid).porcentaje||0}%`:"Sin visitar"}</span><button class="btn" style="width:100%;margin-top:8px" onclick="detail('${m.rid}')">Ver máquina</button></div>`).join(""): `<div class="muted">${empty}</div>`}</div>`;$("zoneVisitList").innerHTML=card("🟢 Máquinas visitadas",visited,"Todavía no hay máquinas visitadas.")+card("⚪ Máquinas sin visitar",pending,"Todas las máquinas fueron visitadas.");}
 
 const STOCK_FACTORY_NAMES=[...new Set([...Object.values(FACTORY_PARTS).flat(),"Billetero"])].sort((a,b)=>a.localeCompare(b,'es'));
@@ -725,16 +729,41 @@ async function reauth(){
   try{await reauthenticateWithCredential(currentUser,EmailAuthProvider.credential(currentUser.email,pass));return true}catch(e){toast("Contraseña incorrecta o no se pudo verificar.");return false}
 }
 window.editMachine=async(rid)=>{
-  const m=machine(rid);if(!m||!(await reauth()))return;
-  const nuevo=prompt("ID de fábrica nuevo. El ID anterior quedará registrado en el historial.\n\nActual: "+m.id,m.id);if(nuevo===null)return;
-  const id=nuevo.trim();if(!id||id===m.id)return;
-  const reason=prompt("Motivo de la corrección:","Corrección de ID de fábrica");if(reason===null)return;
-  const old=m.id,ts=Date.now();
+  const m=machine(rid);if(!m)return;
+  const safe=v=>esc(v??"");
+  $("detail").innerHTML=`<button class="btn" onclick="detail('${rid}')">← Volver a la máquina</button>
+    <div class="title">✏️ Editar datos completos</div><div class="card"><b>${safe(m.id)}</b><p class="muted">Los cambios se guardan en la ficha de la máquina. Si cambiás el ID, el anterior queda registrado en el historial.</p>
+    <label>ID de máquina<input id="em_id" value="${safe(m.id)}" required></label>
+    <label>Modelo / tipo<input id="em_tipo" value="${safe(m.tipo)}" required></label>
+    <label>Número de cliente<input id="em_cliente" value="${safe(m.cliente)}"></label>
+    <label>Provincia<input id="em_provincia" value="${safe(m.provincia)}"></label>
+    <label>Localidad<input id="em_localidad" value="${safe(m.localidad)}"></label>
+    <label>Ubicación exacta<input id="em_ubicacion" value="${safe(m.ubicacion)}"></label>
+    <label>Responsable<input id="em_responsable" value="${safe(m.responsable)}"></label>
+    <label>Zona<input id="em_zona" value="${safe(m.zona)}"></label>
+    <label>Estado<select id="em_estado"><option value="Activa">Activa</option><option value="Inactiva">Inactiva</option><option value="Baja">Baja</option></select></label>
+    <label>Observación inicial<textarea id="em_observacion">${safe(m.observacionInicial||"")}</textarea></label>
+    <button class="btn primary" style="width:100%" onclick="saveMachineFull('${rid}')">💾 Guardar todos los datos</button></div>`;
+  $("em_estado").value=m.estado||"Activa";
+  document.querySelectorAll("main>section").forEach(x=>x.classList.add("hidden"));$("detail").classList.remove("hidden");
+};
+window.saveMachineFull=async(rid)=>{
+  const m=machine(rid);if(!m)return toast("No encontré la máquina.");
+  const val=id=>$(id)?.value?.trim()||"";
+  const data={id:val("em_id"),tipo:val("em_tipo"),cliente:val("em_cliente"),provincia:val("em_provincia"),localidad:val("em_localidad"),ubicacion:val("em_ubicacion"),responsable:val("em_responsable"),zona:val("em_zona"),estado:val("em_estado"),observacionInicial:val("em_observacion"),updatedAt:serverTimestamp()};
+  if(!data.id||!data.tipo)return toast("Completá el ID y el modelo/tipo.");
+  const old={id:m.id,tipo:m.tipo,cliente:m.cliente,provincia:m.provincia,localidad:m.localidad,ubicacion:m.ubicacion,responsable:m.responsable,zona:m.zona,estado:m.estado,observacionInicial:m.observacionInicial||""};
+  const changed=Object.keys(old).some(k=>String(old[k]??"")!==String(data[k]??""));
+  if(!changed)return toast("No cambiaste ningún dato.");
+  const btn=document.querySelector("#detail button.primary");if(btn){btn.disabled=true;btn.textContent="Guardando…";}
   try{
-    await updateDoc(doc(db,"machines",rid),{id,updatedAt:serverTimestamp()});
-    const mv={rid,id: id,tipo:m.tipo,tipoMovimiento:"Corrección de ID",idAnterior:old,idNuevo:id,detalle:reason,observaciones:"Corrección protegida mediante reautenticación",ts,fecha:fmt(ts)};
-    const docId=await addDocCloud("movements",mv);movements.push({...mv,docId});m.id=id;toast("ID corregido. El anterior quedó en el historial.");detail(rid);
-  }catch(e){toast("No se pudo corregir: "+(e.message||e))}
+    await updateDoc(doc(db,"machines",rid),data);
+    Object.assign(m,{...data,updatedAt:Date.now()});
+    const ts=Date.now();
+    const mv={rid,id:data.id,tipo:data.tipo,tipoMovimiento:"Edición de datos de máquina",idAnterior:old.id,idNuevo:data.id,anterior:old,actual:{...data,updatedAt:ts},detalle:"Se actualizaron los datos de la ficha de la máquina.",observaciones:"Edición completa desde la ficha",ts,fecha:fmt(ts)};
+    try{const docId=await addDocCloud("movements",mv);movements.push({...mv,docId});}catch(logErr){console.warn("La máquina se guardó, pero no se pudo guardar el movimiento de historial",logErr);}
+    toast("Datos de la máquina guardados.");detail(rid);
+  }catch(e){console.error("Error editando máquina",e);toast("No se pudieron guardar los datos: "+(e?.code?e.code+" — ":"")+(e?.message||e));if(btn){btn.disabled=false;btn.textContent="💾 Guardar todos los datos";}}
 };
 window.retireMachine=async(rid)=>{
   const m=machine(rid);if(!m||m.estado==="Baja"||!(await reauth()))return;
@@ -1021,7 +1050,7 @@ onAuthStateChanged(auth,async user=>{
 renderAuth();
 window.__appBooted=true;
 if("serviceWorker" in navigator){
-  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20.2").catch(err=>console.warn("Service worker no registrado:",err)));
+  window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=21.0").catch(err=>console.warn("Service worker no registrado:",err)));
 }
 </script>
 </body></html>
